@@ -203,12 +203,12 @@ LogicalSocket::readData(uint8_t* data, size_t len)
     if (currentReadHead != currentReadTail && len != 0) {
         size_t currentReadWindow = currentReadTail - currentReadHead;
         if (len > currentReadWindow) {
-            //::memcpy(data, &readBuffer[currentReadHead], currentReadWindow);
+            ::memcpy(data, &readBuffer[currentReadHead], currentReadWindow);
             currentReadHead += currentReadWindow;
             data += currentReadWindow;
             len  -= currentReadWindow;
         } else {
-            //::memcpy(data, &readBuffer[currentReadHead], len);
+            ::memcpy(data, &readBuffer[currentReadHead], len);
             currentReadHead += len;
             return len;
         }
