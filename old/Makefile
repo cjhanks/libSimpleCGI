@@ -1,17 +1,16 @@
 CC = g++
 AR = ar
-CXXFLAGS = -O3 -std=c++11 -fPIC -fstack-protector-all 
+CXXFLAGS = -O0 -std=c++11 -fPIC
 INCLUDES = -Iinclude
 LIB      = 
 LIBFLAGS = 
 
-SOURCES = src/fcgi-http.cpp \
-		  src/fcgi-socket.cpp \
-		  src/fcgi-protocol.cpp \
-		  src/fcgi-handler.cpp \
-		  src/fcgi-server.cpp
+SOURCES = src/fastcgi-application.cpp 	\
+		  src/fcgi-responder.cpp		\
+		  src/network-parsing.cpp		\
+		  src/synchronous-request.cpp	
 
-EXAMPLE = test/test00.cpp test/base64.c
+EXAMPLE = test/test00.cpp
 
 OBJECTS = $(SOURCES:.cpp=.o)
 
@@ -32,8 +31,8 @@ $(LIBSIMPLECGI_SHARED): $(OBJECTS)
 $(LIBSIMPLECGI_STATIC): $(OBJECTS)
 		$(AR) rcs $(LIBSIMPLECGI_STATIC) $(OBJECTS)
 
-$(LIBSIMPLECGI_EXAMPLE): $(EXAMPLE) $(LIBSIMPLECGI_SHARED)
-		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(LIBSIMPLECGI_EXAMPLE) $(EXAMPLE) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
+$(LIBSIMPLECGI_EXAMPLE): $(EXAMPLE)
+		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(LIBSIMPLECGI_EXAMPLE) $(EXAMPLE) $(LIBSIMPLECGI_STATIC) $(LIBFLAGS) $(LIB)
 		
 
 .cpp.o:
