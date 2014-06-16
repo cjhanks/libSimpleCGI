@@ -1,11 +1,13 @@
 
 #include "network-parsing.hpp"
 #include <sys/uio.h>
+#include <sys/socket.h>
 #include <unistd.h>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <iterator>
+#include "logging.hpp"
 
 using std::begin;
 using std::end;
@@ -16,7 +18,7 @@ using std::string;
 namespace fcgi {
 
 UniqueSocket::UniqueSocket(int sock)
-    : socketHandle(sock)
+: socketHandle(sock)
 {}
 
 UniqueSocket::~UniqueSocket()
@@ -32,37 +34,50 @@ UniqueSocket::UniqueSocket(UniqueSocket&& rhs)
     rhs.socketHandle = -1;
 }
 
-ssize_t
-VectorBuffer::readInto(const Header& header, UniqueSocket& socket)
+Header
+UniqueSocket::readHeader()
+{
+    Header header;
+    if (sizeof(header) != ::recv(socketHandle, &header, sizeof(header), 0)) {
+        // TODO: throw
+    }
+    
+    header.requestId     = __builtin_bswap16(header.requestId);
+    header.contentLength = __builtin_bswap16(header.contentLength);
+
+    return header;
+}
+    
+size_t
+UniqueSocket::readIntoBuffer(const Header& header, VectorBuffer& buffer)
 {
     struct iovec ioVec[2] = { 
         { 
-            .iov_base   = contentBuffer.data(),
+            .iov_base   = buffer.contentBuffer.data(),
             .iov_len    = header.contentLength
         },
         {
-            .iov_base   = paddingBuffer.data(),
+            .iov_base   = buffer.paddingBuffer.data(),
             .iov_len    = header.paddingLength
         }
     };
 
-    ssize_t readLen = readv(socket, ioVec, 2);
+    ssize_t readLen = readv(socketHandle, ioVec, 2);
     if (readLen != (header.contentLength + header.paddingLength)) {
         // TODO: Throw exception
-        size = 0;
+        buffer.size = 0;
     } else {
-        size = header.contentLength;
+        buffer.size = header.contentLength;
         return readLen;
     }
+
 }
 
-
-KeyValueMap
-convertBufferToKeyValuePair(const VectorBuffer& buffer)
+void
+readBufferIntoKeyValuePair(const VectorBuffer& buffer, KeyValueMap& keyValuePair)
 {
-    map<string, string> keyValuePair;
     auto begin = buffer.contentBuffer.begin();
-    auto end   = buffer.contentBuffer.end();
+    auto end   = begin + buffer.size;
 
     static auto is4ByteLength = [](const std::uint8_t& character) {
         return 1 == (character >> 7);
@@ -83,7 +98,7 @@ convertBufferToKeyValuePair(const VectorBuffer& buffer)
         if (is4ByteLength(*head)) {
             nameLength = as4ByteLength(head);
         } else {
-            nameLength = *(begin++);
+            nameLength = *(head++);
         }
         
         // parse value length
@@ -91,18 +106,17 @@ convertBufferToKeyValuePair(const VectorBuffer& buffer)
         if (is4ByteLength(*head)) {
             valueLength = as4ByteLength(head);
         } else {
-            valueLength = *(begin++);
+            valueLength = *(head++);
         }
 
         // put them into map
-        keyValuePair[string(begin, begin + nameLength)] =
-                     string(begin + nameLength, 
-                            begin + nameLength + valueLength);
-
-        begin = head + 1;
+        const string key(head , head + nameLength);
+        const string val(head + nameLength, 
+                         head + nameLength + valueLength);
+        LOG(DEBUG) << key << " = " << val;
+        keyValuePair[key] = val;
+        begin = head + nameLength + valueLength;
     }
-
-    return keyValuePair;
 }
 
 size_t

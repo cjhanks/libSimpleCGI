@@ -10,6 +10,7 @@
 
 namespace fcgi {
 
+
 class UniqueSocket {
 public:
     UniqueSocket(int sock);
@@ -20,24 +21,21 @@ public:
     operator=(const UniqueSocket&) = delete;
 
     UniqueSocket(UniqueSocket&& rhs);
-    
-    operator int() { return this->socketHandle; }
+
+    operator bool() { return socketHandle >= 0; }
+
+    Header 
+    readHeader();
+
+    size_t
+    readIntoBuffer(const Header& header, VectorBuffer& buffer);
     
 private:
     int socketHandle;
 };
 
-struct VectorBuffer {
-    ssize_t readInto(const Header& header, UniqueSocket& socket);
-    std::array<std::uint8_t, MaximumContentDataLen> contentBuffer;
-    std::array<std::uint8_t, MaximumPaddingDataLen> paddingBuffer;
-    size_t size;
-};
-
-using KeyValueMap = std::map<std::string, std::string>;
-
-KeyValueMap
-convertBufferToKeyValuePair(const VectorBuffer& buffer);
+void
+readBufferIntoKeyValuePair(const VectorBuffer& buffer, KeyValueMap& keyValuePair);
 
 size_t
 saveKeyValuePairIntoBuffer(const KeyValueMap& keyValPair, VectorBuffer& buffer);

@@ -1,4 +1,4 @@
-#include "synchronous-application.hpp"
+#include "fastcgi-application.hpp"
 
 #include <sys/stat.h>
 #include <netinet/in.h>
@@ -12,6 +12,8 @@
 #include "fcgi.hpp"
 #include "logging.hpp"
 #include "exceptions.hpp"
+#include "fcgi-responder.hpp"
+#include "network-parsing.hpp"
 
 namespace fcgi {
 using std::begin;
@@ -67,18 +69,16 @@ DomainSocket::operator int()
 }
 
 KeyValueMap
-SynchronousApplication::defaultGetValueMap = {
+FastCGI::defaultGetValueMap = {
     {MaximumConnections    , "1"},
     {MaximumRequests       , "1"},
     {MultiplexesConnections, "0"}
 };
 
-SynchronousApplication::SynchronousApplication(int sock)
-    : applicationName("default"), serverSocket(sock)
+FastCGI::FastCGI(int sock)
+    : serverSocket(sock)
 {
     // if the webserver address' are define, insert them
-    LOG(INFO) << "initializing application: " << applicationName 
-              << "[sock=" << sock << "]";
     static constexpr char splitToken = ',';
     string buffer;
     string serverAddressString(getenv(WebServerAddressEnvKey) ?
@@ -96,16 +96,13 @@ SynchronousApplication::SynchronousApplication(int sock)
         LOG(INFO) << "hostIP:" << buffer;
     }
 }
-
-string
-SynchronousApplication::name() const 
-{
-    return applicationName;
+    
+FastCGI::~FastCGI() {
+    ::close(serverSocket);
 }
 
-
-SynchronousRequest*
-SynchronousApplication::acceptRequest()
+void
+FastCGI::enterRequestLoop()
 {
     do {
         struct sockaddr_in address;
@@ -113,8 +110,7 @@ SynchronousApplication::acceptRequest()
         
         UniqueSocket client(accept(serverSocket, (struct sockaddr*) &address, 
                             &address_len));
-        LOG(DEBUG) << "client accepted";
-        if (client < 0) {
+        if (!client) {
             throw NullClientException("Failed to accept client");
         }
 
@@ -130,26 +126,17 @@ SynchronousApplication::acceptRequest()
         } 
         
         // receive the header 
-        RawHeader rawHeader;
-        ssize_t received = recv(client, &rawHeader, sizeof(rawHeader), 0);
-        if (received < 0) {
-            LOG(ERROR) << "Failed to receive rawHeader";
-            throw ClientProtocolException("failed to receive raw header");
-        }
-
-        Header header = rawHeaderToNativeHeader(rawHeader);
-        LOG(DEBUG) << header;
-        if (isManagementRecord(header)) {
+        Header header(client.readHeader());
+        if (header.isManagementRecord()) {
             handleManagementRecord(header, client);
         } else {
-            return establishedApplicationRequest(header, client);
+            handleApplicationRequest(header, client);
         }
     } while (true);
 }
 
 void
-SynchronousApplication::handleManagementRecord(const Header& header, 
-                                               UniqueSocket& socket)
+FastCGI::handleManagementRecord(const Header& header, UniqueSocket& socket)
 {
     LOG(DEBUG) << "received management header";
     if (header.type != HeaderType::GET_VALUES) {
@@ -160,8 +147,9 @@ SynchronousApplication::handleManagementRecord(const Header& header,
     VectorBuffer buffer;
 
     // receive the request elements 
-    buffer.readInto(header, socket);
-    KeyValueMap keyValueReq(convertBufferToKeyValuePair(buffer));
+    socket.readIntoBuffer(header, buffer);
+    KeyValueMap keyValueReq;
+    readBufferIntoKeyValuePair(buffer, keyValueReq);
     
     // build the response map 
     KeyValueMap keyValueRes;
@@ -177,14 +165,11 @@ SynchronousApplication::handleManagementRecord(const Header& header,
     saveKeyValuePairIntoBuffer(keyValueRes, buffer);
 }
 
-SynchronousRequest*
-SynchronousApplication::establishedApplicationRequest(const Header& header, 
-                                                      UniqueSocket& socket)
+void
+FastCGI::handleApplicationRequest(const Header& header, UniqueSocket& socket)
 {
-    LOG(INFO) << "establishedApplicationRequest";
     VectorBuffer buffer;
-    buffer.readInto(header, socket);
-    
+    socket.readIntoBuffer(header, buffer);
     if (header.contentLength != buffer.size) {
         throw ClientProtocolException("Invalid buffer size");
     }
@@ -196,15 +181,13 @@ SynchronousApplication::establishedApplicationRequest(const Header& header,
 
     switch (beginMessage.role) {
         case Begin::Role::RESPONDER:
-            LOG(DEBUG) << "Responder";
+            FCGI_Responder(header, beginMessage)(socket, buffer);
             break;
 
         case Begin::Role::AUTHORIZER:
-            LOG(DEBUG) << "Authorizer";
             break;
 
         case Begin::Role::FILTER:
-            LOG(DEBUG) << "Filter";
             break;
     }
 }
