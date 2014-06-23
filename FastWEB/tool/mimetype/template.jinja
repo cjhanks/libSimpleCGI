@@ -1,0 +1,33 @@
+#ifndef __FCGI_MIMETYPE_HPP
+#define __FCGI_MIMETYPE_HPP
+
+////////////////////////////////////////////////////////////////////////////////
+// AUTO GENERATED FILE, DO NOT MODIFY
+////////////////////////////////////////////////////////////////////////////////
+
+#include <string>
+
+namespace fcgi {
+
+enum class MimeType {
+{% for mimetype in mimetypes: %}
+	{{mimetype[0]}},
+{%- endfor -%}
+};
+
+inline std::string
+mimeTypeToString(const MimeType& mimetype)
+{
+	switch (mimetype) {
+
+		{%- for mimetype in mimetypes: -%}
+		case MimeType::{{mimetype[0]}}: return "{{mimetype[1]}}";
+		{% endfor %}
+	}
+
+	return "";
+}
+
+} // ns fcgi
+
+#endif //__FCGI_MIMETYPE_HPP

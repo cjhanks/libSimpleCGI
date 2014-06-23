@@ -5,7 +5,6 @@
 #include <iostream>
 
 namespace fcgi {
-
 enum LogLevel {
     DEBUG   = 2,
     INFO    = 4,
@@ -15,32 +14,28 @@ enum LogLevel {
 
 class LOG {
 public:
-    LOG(const LogLevel& level)
-        : level(static_cast<int>(level))
-    {}
+    static void
+    SetLogLevel(const int& newLevel);
 
-    virtual ~LOG() {
-        std::cerr << std::endl;
-    }
+    LOG(const LogLevel& level);
+    ~LOG();
 
     template <typename _Tp>
-    std::ostream& operator<<(_Tp& data)
+    inline LOG&
+    operator<<(const _Tp& data)
     {
-        printHeader();
-        std::cerr << data;
-        return std::cerr;
+        if (level >= MaximumLogLevel) {
+            std::cerr << data;
+        }
+        return *this;
     }
 
 private:
+    static int MaximumLogLevel;
     const int level;
 
-    inline void printHeader() 
-    {
-        std::cerr << "[" << time(0x0) << "]"
-                  << " ("
-                  << level
-                  << ") ";
-    }
+    void 
+    printHeader();
 };
 } // ns fcgi
 

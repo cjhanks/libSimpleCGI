@@ -1,61 +1,45 @@
 
 #include "fcgi-server.hpp"
-#include <sys/socket.h>
+
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/stat.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <fcntl.h>
-#include <signal.h>
+#include <unistd.h>
+#include <cassert>
+#include <iostream>
 #include <memory>
 
+#include "fcgi.hpp"
 #include "fcgi-socket.hpp"
 #include "fcgi-handler.hpp"
+#include "server/fcgi-pre-fork.hpp"
+#include "server/fcgi-synchronous.hpp"
 #include "logging.hpp"
 
 namespace fcgi {
 using std::unique_ptr;
+using std::ostream;
+using std::string;
 
-////////////////////////////////////////////////////////////////////////////////
-namespace synchronous {
+namespace {
 void
-eventLoop(MasterServer* master, ServerConfig config, int socket)
+application(MasterServer* master, LogicalApplicationSocket* sock)
 {
-    ::signal(SIGPIPE, SIG_IGN);
-    
-    do {
-        struct sockaddr_in address;
-        socklen_t          address_len;
-        int client = accept4(socket, (struct sockaddr*)&address, 
-                             &address_len, SOCK_CLOEXEC);
-        if (client < 0) {
-            continue;
-        }
-       
-        unique_ptr<LogicalSocket> sock(
-            LogicalSocket::constructLogicalSocket(new PhysicalSocket(client)));
-        applicationHandler(master,
-                           static_cast<LogicalApplicationSocket*>(sock.get()));
-    } while (true);
+    try {
+        applicationHandler(master, sock);
+    } catch (const SocketStateException& e) {
+        LOG(INFO) << "E1: " << e.what();
+    } catch (const SocketIOException& e) {
+        LOG(INFO) << "E2: " << e.what();
+    } catch (...) {
+    }
 }
-} // ns synchronous 
+} // ns
 
-////////////////////////////////////////////////////////////////////////////////
-
-namespace prefork {
-void
-eventLoop(MasterServer* master, ServerConfig config, int socket)
-{
-    
-}
-} // ns prefork
-
-////////////////////////////////////////////////////////////////////////////////
 
 MasterServer::MasterServer(ServerConfig config, int socket)
     : serverConfig(config), rawSock(socket)
 {  
-    LOG(INFO) << "MasterServer(..., " << socket << ")";
     int       optVal;
     socklen_t optLen = sizeof(optVal);
     if (getsockopt(socket, SOL_SOCKET, SO_ACCEPTCONN, &optVal, &optLen)
@@ -71,13 +55,76 @@ void
 MasterServer::serveForever() 
 {
     switch (serverConfig.concurrencyModel) {
-        case ServerConfig::ConcurrencyModel::NONE:
-            synchronous::eventLoop(this, serverConfig, rawSock);
+        case ServerConfig::ConcurrencyModel::SYNCHRONOUS:
+            sync::eventLoop(this, serverConfig, rawSock);
             break;
-        case ServerConfig::ConcurrencyModel::THREAD:
+        case ServerConfig::ConcurrencyModel::THREADED:
             break;
-        case ServerConfig::ConcurrencyModel::PROCESS:
+        case ServerConfig::ConcurrencyModel::PREFORKED:
+            LOG(INFO) << "Server forked";
+            prefork::eventLoop(this, serverConfig, rawSock);
             break;
     }
+}
+
+void
+MasterServer::handleInboundSocket(int sock)
+{
+    unique_ptr<LogicalSocket> logic(
+        LogicalSocket::constructLogicalSocket(new PhysicalSocket(sock)));
+
+    switch (logic->requestClass()) {
+        case RequestClass::APPLICATION:
+            application(this, 
+                        static_cast<LogicalApplicationSocket*>(logic.get()));
+            break;
+
+        case RequestClass::MANAGEMENT:
+            break;
+
+        default:
+            assert(1 == 0);
+            close(sock);
+            break;
+    }
+}
+
+void
+MasterServer::dumpTo(ostream& strm) const
+{
+    using std::endl;
+    strm << string(80, '=') << endl
+         << "FASTWEB: " << versionToString(CurrentVersion) << endl
+         << string(80, '-') << endl;
+
+    serverConfig.dumpTo(strm);
+    
+    strm << httpRoutes;
+    serverAssets.dumpTo(strm);
+}
+    
+void
+ServerConfig::dumpTo(ostream& strm) const
+{
+    auto concurrencyModelStr = [&]() {
+        switch (concurrencyModel) {
+            case ConcurrencyModel::SYNCHRONOUS:
+                return "SYNCHRONOUS";
+            case ConcurrencyModel::THREADED:
+                return "THREADED";
+            case ConcurrencyModel::PREFORKED:
+                return "PREFORKED";
+        }
+
+        return "UNDEFINED";
+    };
+
+    strm << "Concurrency Model: " << concurrencyModelStr() << " -> ";
+    if (concurrencyModel == ConcurrencyModel::SYNCHRONOUS) {
+        strm << "1";
+    } else {
+        strm << childCount;
+    }
+    strm << std::endl;
 }
 } // ns fcgi

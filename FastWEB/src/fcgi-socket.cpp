@@ -42,7 +42,7 @@ domainSocket(const string& path)
         throw SocketCreationException("Failed to bind socket");
     } 
 
-    if (::listen(sockFD, 32) < 0) {
+    if (::listen(sockFD, 128) < 0) {
         throw SocketCreationException("Failed to listen");
     }
     
@@ -137,7 +137,7 @@ PhysicalSocket::close()
     if (rawSock < 0) {
         throw SocketStateException("Socket in wrong state");
     }
-
+    
     ::close(rawSock);
     rawSock = -1;
 }
@@ -176,9 +176,6 @@ LogicalSocket::~LogicalSocket()
 size_t
 LogicalSocket::recvDataForHeader(const Header& header, uint8_t* data)
 {
-    assert(header.contentLength <= MaximumContentDataLen);
-    assert(header.paddingLength <= MaximumPaddingDataLen);
-    
     ssize_t recvData = socket->recvVec(data, 
                                        header.contentLength,
                                        padBuffer.data(),
@@ -226,7 +223,6 @@ LogicalSocket::readData(uint8_t* data, size_t len)
     Header header(lastHeader());
      
     if (header.type == HeaderType::STDIN) {
-        assert(header.contentLength <= MaximumContentDataLen);
         currentReadTail = recvDataForHeader(header, readBuffer.data());
         assert(currentReadTail == header.contentLength);
         header = getHeader();
@@ -245,7 +241,7 @@ LogicalSocket::sendData(const uint8_t* data, size_t len)
         size_t writeLen = MaximumContentDataLen - currentWriteHead;
         ::memcpy(dataBuffer.data() + currentWriteHead, data, writeLen);
         currentWriteHead += writeLen;
-        return flushData(dataBuffer.data(), currentWriteHead)
+        return stdoutFlush(dataBuffer.data(), currentWriteHead)
              + sendData(data + writeLen, len - writeLen);
     } else {
         ::memcpy(dataBuffer.data() + currentWriteHead, data, len);
@@ -255,26 +251,40 @@ LogicalSocket::sendData(const uint8_t* data, size_t len)
     return 0;
 }
 
+size_t
+LogicalSocket::logError(const uint8_t* data, size_t len)
+{
+    Header header;
+    header.version       = Version::FCGI_1;
+    header.type          = HeaderType::STDERR;
+    header.requestId     = logicalRequestId;
+    header.contentLength = static_cast<uint16_t>(len);
+    header.paddingLength = static_cast<uint8_t>(0);
+    header.switchEndian();
+    
+    return socket->sendVec(&header, sizeof(header), data, len);
+}
+
+
 void
 LogicalSocket::exitCode(ProtocolStatus status)
 {
-    if (flushData(dataBuffer.data(), currentWriteHead)) {
-        flushData(dataBuffer.data(), currentWriteHead);
+    if (stdoutFlush(dataBuffer.data(), currentWriteHead)) {
+        stdoutFlush(dataBuffer.data(), currentWriteHead);
     }
 
-    MessageEndRequest endReq {
-        .appStatus      = 0,
-        .protocolStatus = status,
-    };
+    MessageEndRequest endReq;
+    endReq.appStatus      = 0;
+    endReq.protocolStatus = status;
     endReq.switchEndian();
 
-    Header header { 
-        .version       = Version::FCGI_1,
-        .type          = HeaderType::END_REQUEST,
-        .requestId     = logicalRequestId,
-        .contentLength = static_cast<uint16_t>(sizeof(endReq)),
-        .paddingLength = static_cast<uint8_t>(0) 
-    };
+    Header header;
+    header.version       = Version::FCGI_1,
+    header.type          = HeaderType::END_REQUEST;
+    header.requestId     = logicalRequestId;
+    header.contentLength = static_cast<uint16_t>(sizeof(endReq));
+    header.paddingLength = static_cast<uint8_t>(0);
+    header.reserved      = 0;
     header.switchEndian();
     
     ssize_t size = socket->sendVec(&header, sizeof(header), &endReq, 
@@ -283,16 +293,16 @@ LogicalSocket::exitCode(ProtocolStatus status)
 }
 
 size_t
-LogicalSocket::flushData(uint8_t* data, size_t len)
+LogicalSocket::stdoutFlush(uint8_t* data, size_t len)
 {
     assert(len == currentWriteHead);
-    Header header { 
-        .version       = Version::FCGI_1,
-        .type          = HeaderType::STDOUT,
-        .requestId     = logicalRequestId,
-        .contentLength = static_cast<uint16_t>(len),
-        .paddingLength = static_cast<uint8_t>(0) 
-    };
+    Header header;
+    header.version       = Version::FCGI_1;
+    header.type          = HeaderType::STDOUT;
+    header.requestId     = logicalRequestId;
+    header.contentLength = static_cast<uint16_t>(len);
+    header.paddingLength = static_cast<uint8_t>(0);
+    header.reserved      = {0};
     header.switchEndian();
 
     size_t flushSize = socket->sendVec(&header, sizeof(header), data, len);
@@ -300,6 +310,12 @@ LogicalSocket::flushData(uint8_t* data, size_t len)
     assert(currentWriteHead == 0);
     
     return flushSize;
+}
+
+size_t 
+LogicalSocket::stderrFlush()
+{
+    return logError(nullptr, 0);
 }
 
 Header

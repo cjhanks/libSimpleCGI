@@ -6,8 +6,11 @@
 
 #include "fcgi-http.hpp"
 #include "fcgi-handler.hpp"
+#include "fcgi-io.hpp"
 
 namespace fcgi {
+using ServeCallback = std::function<void()>;
+
 class MasterServerException : public std::runtime_error {
 public:
     MasterServerException(const std::string& msg)
@@ -17,30 +20,46 @@ public:
 
 struct ServerConfig {
     enum class ConcurrencyModel {
-        NONE,
-        THREAD,
-        PROCESS
+        SYNCHRONOUS,
+        THREADED,
+        PREFORKED, 
     };
-
-    ServerConfig()
-        : concurrencyModel(ConcurrencyModel::NONE), childCount(1)
-    {}
-
+    
     ConcurrencyModel concurrencyModel;
     size_t childCount;
+    ServeCallback callBack;
+
+    ServerConfig()
+        : concurrencyModel(ConcurrencyModel::SYNCHRONOUS), childCount(1)
+    {}
+    
+    void
+    dumpTo(std::ostream&) const;
 };
 
 class MasterServer {
 public:
-    MatchingRoot HttpRoutes;
-
     MasterServer(ServerConfig config, int socket);
     
     void
     serveForever();
 
+    void
+    handleInboundSocket(int sock);
+
+    void
+    dumpTo(std::ostream&) const;
+
+    Assets&
+    assets() { return serverAssets; }
+    
+    MatchingRoot&
+    routes() { return httpRoutes; }
+
 private:
     const ServerConfig serverConfig;
+    Assets serverAssets;
+    MatchingRoot httpRoutes;
     int rawSock;
 
 };

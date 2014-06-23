@@ -7,6 +7,7 @@
 
 #include "fcgi-protocol.hpp"
 #include "fcgi-http.hpp"
+#include "fcgi-mimetype.hpp"
 #include "logging.hpp"
 
 
@@ -16,13 +17,13 @@ class LogicalApplicationSocket;
 
 class HttpRequest {
 public:
-    HttpRequest(const KeyValueMap* httpHeaders,
-                const MatchingArgs* matchingArgs,
-                const QueryArgument* queryArgs,
-                LogicalApplicationSocket* client);
+    HttpRequest(LogicalApplicationSocket* client);
 
     HttpVerb 
     verb() const { return httpVerb; }
+
+    std::string
+    route() const { return httpRoute; }
     
     /// {@
     /// All key-value accessors have the behavior of returning an empty string
@@ -40,10 +41,6 @@ public:
     std::string
     getQueryArgument(const std::string& key);
 
-    // TODO: The URI "anchor" is needed
-    //std::string
-    //getQueryAnchor();
-    
     // When the route was installed it may have had variable arguments
     // eg: /path/<route>/here
     //     /path/example/here
@@ -51,13 +48,15 @@ public:
     std::string
     getRouteArgument(const std::string& key);
     /// @}
+    
+    // NOTE: Currently this is not a "cheap" function, as it performs string parsing on
+    // every operation.
+    size_t
+    contentLength() const;
 
     ////////////////////////////////////////////////////////////////////////////
     // POST / PUT / PATCH
     ////////////////////////////////////////////////////////////////////////////
-    size_t
-    contentLength() const;
-    
     size_t
     recvAll(std::vector<std::uint8_t>& data);
     
@@ -76,16 +75,19 @@ public:
     ////////////////////////////////////////////////////////////////////////////
 
     ////////////////////////////////////////////////////////////////////////////
-    // DEBUG 
+    // DEBUG & INTERNAL
     ////////////////////////////////////////////////////////////////////////////
-    
+    Maybe
+    getRoute(MasterServer* master);
+
     void
     dumpRequestDebugTo(std::ostream& strm);
 
 private:
-    const KeyValueMap* httpHeaders;
-    const MatchingArgs* matchingArgs;
-    const QueryArgument* queryArgs;
+    std::string httpRoute;
+    KeyValueMap httpHeaders;
+    MatchingArgs matchingArgs;
+    QueryArgument queryArgs;
     HttpVerb httpVerb;
     LogicalApplicationSocket* client;
     
@@ -97,6 +99,9 @@ private:
 class HttpHeader {
 public:
     HttpHeader(const size_t& responseCode, const std::string& contentType);
+    HttpHeader(const size_t& responseCode, const MimeType& mimeType)
+        : HttpHeader(responseCode, mimeTypeToString(mimeType))
+    {}
 
     void
     addHeader(const std::string& key, const std::string& val);
@@ -114,6 +119,9 @@ public:
     HttpResponse(LogicalApplicationSocket* client);
     ~HttpResponse();
     
+    void
+    logError(const std::string& message);
+
     void 
     setResponse(const HttpHeader& header);
 

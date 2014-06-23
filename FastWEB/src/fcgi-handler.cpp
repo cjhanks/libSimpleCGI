@@ -25,36 +25,15 @@ static constexpr const char* REQUEST_VERB = "REQUEST_METHOD";
 void
 applicationHandler(MasterServer* master, LogicalApplicationSocket* client)
 {
-    KeyValueMap httpHeaders;
-    MatchingArgs matchArgs;
-    QueryArgument queryArgs;
-    Header header(client->getHeader());
-    while (header.type == HeaderType::PARAMS) {
-        client->mergeKeyValueMap(header, httpHeaders);
-        header = client->getHeader();
-    }
-    
-    // -- find the route
-    auto routeStr = httpHeaders.find(DOCUMENT_URI);
-    if (routeStr == httpHeaders.end()) {
-        assert(1 == 0);
-    }
-
-    auto maybeRoute = master->HttpRoutes.getRoute(routeStr->second, matchArgs);
-    if (!maybeRoute) {
-        return;
-    } 
-    
-    // -- find the query args
-    auto queryStr = httpHeaders.find(QUERY_STRING);
-    if (queryStr != httpHeaders.end()) {
-        queryArgs = QueryArgument::fromRawString(queryStr->second);
-    }
-    
-    HttpRequest  req(&httpHeaders, &matchArgs, &queryArgs, client);
+    HttpRequest  req(client);
     HttpResponse res(client);
 
-    maybeRoute(req, res);
+    auto maybeRoute = req.getRoute(master);
+    if (!maybeRoute) {
+        res.setResponse(HttpHeader(404, "text/html"));
+    } else {
+        maybeRoute.call(req, res);
+    }
 }
 
 void
@@ -66,7 +45,7 @@ HttpRequest::dumpRequestDebugTo(std::ostream& strm)
     strm << setw(4)
          << verbToVerbString(httpVerb)
          << ":   "
-         << httpHeaders->at(DOCUMENT_URI)
+         << httpHeaders.at(DOCUMENT_URI)
          << " ["
          << contentLength()
          << "]"
@@ -74,7 +53,7 @@ HttpRequest::dumpRequestDebugTo(std::ostream& strm)
     
     strm << "    FCGI Headers:"
          << endl;
-    for (auto& ref: *httpHeaders) {
+    for (auto& ref: httpHeaders) {
         strm << "    "
              << setw(24)
              << ref.first
@@ -87,7 +66,7 @@ HttpRequest::dumpRequestDebugTo(std::ostream& strm)
     strm << "    Matching Arguments:"
          << endl;
 
-    for (auto& ref: *matchingArgs) {
+    for (auto& ref: matchingArgs) {
         strm << "    "
              << setw(12)
              << ref.first
@@ -99,7 +78,7 @@ HttpRequest::dumpRequestDebugTo(std::ostream& strm)
     strm << "    Query Arguments:"
          << endl;
 
-    for (auto& ref: queryArgs->queryArgs) {
+    for (auto& ref: queryArgs.queryArgs) {
         strm << "    "
              << setw(12)
              << ref.first
@@ -114,7 +93,7 @@ HttpRequest::dumpRequestDebugTo(std::ostream& strm)
 string
 HttpRequest::getHeader(string key, const string& defaultValue) const
 {
-    static auto cleanHeader = [&](const char c) -> char {
+    static auto cleanHeader = [](const char c) -> char {
         switch (c) {
             case '-':
                 return '_';
@@ -126,8 +105,8 @@ HttpRequest::getHeader(string key, const string& defaultValue) const
 
     std::transform(key.begin(), key.end(), key.begin(), cleanHeader);
                   
-    auto it = httpHeaders->find(key);
-    if (it == httpHeaders->end() || it->second.size() == 0) {
+    auto it = httpHeaders.find(key);
+    if (it == httpHeaders.end() || it->second.size() == 0) {
         return defaultValue;
     } else {
         return it->second;
@@ -174,27 +153,45 @@ HttpRequest::recv(uint8_t* data, size_t len)
     }
 }
 
-HttpRequest::HttpRequest(const KeyValueMap* httpHeaders,
-                         const MatchingArgs* matchingArgs,
-                         const QueryArgument* queryArgs,
-                         LogicalApplicationSocket* client)
-    : httpHeaders(httpHeaders), matchingArgs(matchingArgs), 
-      queryArgs(queryArgs), httpVerb(HttpVerb::UNDEFINED), 
-      client(client), bytesRead(0)
+HttpRequest::HttpRequest(LogicalApplicationSocket* client)
+    : httpVerb(HttpVerb::UNDEFINED), client(client), bytesRead(0)
 {
+    // HTTP Headers
+    Header header(client->getHeader());
+    while (header.type == HeaderType::PARAMS) {
+        client->mergeKeyValueMap(header, httpHeaders);
+        header = client->getHeader();
+    }
+
+    // Route information
+    auto routeIter = httpHeaders.find(DOCUMENT_URI);
+    if (routeIter == httpHeaders.end()) {
+        assert(1 == 0);
+    } else {
+        httpRoute = routeIter->second;
+    }
+
+    // Query arguments
+    auto queryIter = httpHeaders.find(QUERY_STRING);
+    if (queryIter != httpHeaders.end()) {
+        queryArgs = QueryArgument::fromRawString(queryIter->second);
+    }
+    
     // Find the Verb
-    auto verbStr = httpHeaders->find(REQUEST_VERB);
-    if (verbStr == httpHeaders->end()) {
+    auto verbStr = httpHeaders.find(REQUEST_VERB);
+    if (verbStr == httpHeaders.end()) {
         assert(1 == 0);
     } else {
         httpVerb = verbStringToVerb(verbStr->second);
     }
-
-    if (httpVerb == HttpVerb::UNDEFINED) {
-        assert(1 == 0);
-    }
 }
     
+Maybe
+HttpRequest::getRoute(MasterServer* master)
+{
+    return master->routes().getRoute(route(), matchingArgs, httpVerb);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace {
@@ -246,6 +243,14 @@ HttpResponse::HttpResponse(LogicalApplicationSocket* client)
 HttpResponse::~HttpResponse()
 {
     client->exitCode(ProtocolStatus::REQUEST_COMPLETE);
+}
+
+void
+HttpResponse::logError(const string& message)
+{
+    client->logError(
+            reinterpret_cast<const uint8_t*>(message.c_str()),
+            message.size());
 }
 
 void
