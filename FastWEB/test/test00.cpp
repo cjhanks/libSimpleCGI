@@ -2,51 +2,48 @@
 #include <iostream>
 #include "fcgi-server.hpp"
 #include "fcgi-socket.hpp"
+#include "fcgi-io.hpp"
+#include "logging.hpp"
 #include "base64.h"
 
 using namespace fcgi;
 
 bool
-testValue(HttpRequest& req, HttpResponse& res) {
-    using namespace std;
-    req.dumpRequestDebugTo(std::cerr);
-    
-    uint8_t* data = new uint8_t[1024];
-    cerr << "START" << endl;
-
-    HttpHeader responseHeader(200, "text/html");
-    responseHeader.addHeader("key", "value");
-    res.setResponse(responseHeader);
-    
-    size_t tot = 0;
-    size_t len;
-    while (len = req.recv(+data, 1024)) {
-        //res.write(base64_encode(data, len));
-        tot += len;
-    }
-
-    for (size_t i = 0; i < 1000; ++i) {
-        res.write("HEY WORLD\n");
-    }
-
-    cerr << "WE DONE: " << tot << endl;
-    //string buff(1024 * 68, 'A');
-    ////for (size_t i = 0; i < 1024 * 1024; ++i) {
-    //for (size_t i = 0; i < 1000; ++i) {
-    //    res.write(buff);
-    //}
-    //if (req.verb() == HttpVerb::GET) {
-    //    res.write("WAS A GET!");
-    //}
-
+testIndex(HttpRequest& req, HttpResponse& res) {
+    (void) req;
+    res.setResponse(HttpHeader(200, MimeType::TEXT_HTML));
+    res.write("<p>Hello World</p>");
     return true;
 }
+
+bool
+testJSON(HttpRequest& req, HttpResponse& res) {
+    (void) req;
+    res.setResponse(HttpHeader(200, MimeType::APPLICATION_JSON));
+    res.write("{\"key\": \"value\"}");
+    res.logError("Whats up doc?");
+    return true;
+}
+
 
 int
 main()
 {
+    LOG::SetLogLevel(WARNING);
+
     ServerConfig config;
+    config.concurrencyModel = ServerConfig::ConcurrencyModel::PREFORKED;
+    config.childCount = 8;
     MasterServer server(config, domainSocket("/tmp/test.sock"));
-    server.HttpRoutes.installRoute("/test/path/<name>", testValue);
+    server.assets().addSearchPath("/tmp/", CacheMode::LAZY);
+    server.assets().addSearchPath("/var/tmp/", CacheMode::EAGER);
+    server.routes().installRoute("/", testIndex);
+    server.routes().installRoute("/index", testIndex, {HttpVerb::GET});
+    server.routes().installRoute("/index/<key>/dog", testIndex, 
+                                {HttpVerb::GET, HttpVerb::POST});
+    server.routes().installRoute("/json", testJSON, {HttpVerb::GET});
+    
+    server.dumpTo(std::cerr);
+
     server.serveForever();
 }

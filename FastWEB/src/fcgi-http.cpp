@@ -3,10 +3,13 @@
 #include <cassert>
 #include <locale>
 #include <sstream>
+#include "logging.hpp"
 
 namespace fcgi {
+using std::endl;
 using std::getline;
 using std::locale;
+using std::ostream;
 using std::string;
 using std::stringstream;
 using std::vector;
@@ -17,7 +20,7 @@ urlDecode(const string& input)
 {
     static locale loc;
 
-    auto toChar = [](const char c) -> char {
+    static auto toChar = [](const char c) -> char {
         if (c >= '0' && c <= '9') {
             return c - '0';
         } else if (c >= 'A' && c <= 'F') {
@@ -53,9 +56,52 @@ urlDecode(const string& input)
                 break;
         }
     }
+
     return ostrm.str();
 }
 } // ns
+
+HttpVerb
+verbStringToVerb(const string& verbStr) 
+{
+    if (verbStr == "GET")    return HttpVerb::GET;
+    if (verbStr == "POST")   return HttpVerb::POST;
+    if (verbStr == "PUT")    return HttpVerb::PUT;
+    if (verbStr == "PATCH")  return HttpVerb::PATCH;
+    if (verbStr == "DELETE") return HttpVerb::DELETE;
+
+    return HttpVerb::UNDEFINED;
+}
+
+string 
+verbToVerbString(const HttpVerb& verb)
+{
+    switch (verb) {
+        case HttpVerb::UNDEFINED:
+            return "UNDEFINED";
+
+        case HttpVerb::GET:
+            return "GET";
+        
+        case HttpVerb::POST:
+            return "POST";
+        
+        case HttpVerb::PUT:
+            return "PUT";
+        
+        case HttpVerb::PATCH:
+            return "PATCH";
+        
+        case HttpVerb::DELETE:
+            return "DELETE";
+
+        case HttpVerb::ANY:
+            return "ANY";
+    
+        default:
+            return "UNDEFINED";
+    }
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -107,16 +153,34 @@ Maybe::Maybe()
     : isMatchLink(false)
 {}
 
-Maybe::Maybe(const Route& matchLink)
-    : isMatchLink(true), matchLink(matchLink)
+Maybe::Maybe(const Route& matchLink, const VerbSet& verbSet)
+    : isMatchLink(true), matchLink(matchLink), matchVerbs(verbSet)
 {}
 
-Maybe::operator bool()
-{ return isMatchLink; }
+Maybe::operator bool() const
+{ 
+    return isMatchLink; 
+}
+    
+bool
+Maybe::matchesVerb(const HttpVerb& verb)
+{
+    return matchVerbs.count(verb)
+        || matchVerbs.count(HttpVerb::ANY);
+}
 
-Maybe::operator Route()
-{ return matchLink; }
+void
+Maybe::dumpTo(const string& prefix, ostream& strm) const
+{
+    for (auto& ref: matchVerbs) {
+        strm << "    "
+             << verbToVerbString(ref)
+             << endl;
+    }
 
+    strm << "    " << prefix << endl;
+    
+}
 
 MatchingLink
 MatchingLink::getRoot()
@@ -126,6 +190,7 @@ MatchingLink::getRoot()
     return root;
 }
     
+
 MatchingLink::MatchingLink(ElemType elem)
     : matchLink(elem), matchType(MatchingType::UNDEFINED)
 {
@@ -142,26 +207,28 @@ MatchingLink::MatchingLink(ElemType elem)
 }
 
 
-MatchingLink::MatchingLink(IterType head, IterType last, const Route& route)
+MatchingLink::MatchingLink(IterType head, IterType last, const Route& route,
+                           const VerbSet& verbSet)
     : MatchingLink(*head)
 {
-    installRoute(++head, last, route);
+    installRoute(++head, last, route, verbSet);
 }
 
 void
-MatchingLink::installRoute(IterType head, IterType last, const Route& route) 
+MatchingLink::installRoute(IterType head, IterType last, const Route& route,
+                           const VerbSet& verbSet)
 {
     if (head == last) {
-        currentRoute = Maybe(route);
+        currentRoute = Maybe(route, verbSet);
     } else {
         for (auto& ref: matchLinkVector) {
             if (ref.matches(head)) {
-                ref.installRoute(++head, last, route);
+                ref.installRoute(++head, last, route, verbSet);
                 return;
             }
         }
         
-        matchLinkVector.emplace_back(MatchingLink(head, last, route));
+        matchLinkVector.emplace_back(MatchingLink(head, last, route, verbSet));
     }
 }
 
@@ -182,8 +249,33 @@ MatchingLink::getRoute(IterType head, IterType last, MatchingArgs* args)
                 return ref.getRoute(++head, last, args);
             }
         }
-
+        
         return Maybe();
+    }
+}
+    
+void
+MatchingLink::dumpTo(const string& prefix, ostream& strm) const
+{
+    string correctedPrefix = prefix;
+
+    switch (matchType) {
+        case MatchingType::ANY:
+            correctedPrefix += "/<" + matchLink + ">";
+            break;
+
+        default:
+            correctedPrefix += matchLink;
+            break;
+    }
+
+    if (currentRoute) {
+        strm << string(80, '-') << endl;
+        currentRoute.dumpTo(correctedPrefix, strm);
+    }
+
+    for (auto& ref: matchLinkVector) {
+        ref.dumpTo(correctedPrefix, strm);
     }
 }
 
@@ -209,6 +301,8 @@ MatchingLink::matches(IterType elem, MatchingArgs* args)
         case MatchingType::UNDEFINED:
             return false;
     }
+
+    return false;
 }
 
 namespace {
@@ -234,23 +328,42 @@ MatchingRoot::MatchingRoot()
 {}
 
 void
-MatchingRoot::installRoute(const string& routeStr, const Route& route) 
+MatchingRoot::installRoute(const string& routeStr, const Route& route)
 {
-    vector<string> routeVec(routeToVector(routeStr));
-    root.installRoute(routeVec.cbegin(), routeVec.cend(), route);
+    return installRoute(routeStr, route, {HttpVerb::ANY});
 }
 
-
-Route
-MatchingRoot::getRoute(const string& routeStr, MatchingArgs& args) 
+void
+MatchingRoot::installRoute(const string& routeStr, const Route& route,
+                           const VerbSet& verbSet)
 {
     vector<string> routeVec(routeToVector(routeStr));
+    root.installRoute(routeVec.cbegin(), routeVec.cend(), route, verbSet);
+}
+
+Maybe
+MatchingRoot::getRoute(const string& routeStr, MatchingArgs& args,
+                       const HttpVerb& verb)
+{
+    vector<string> routeVec(routeToVector(routeStr));
+    Maybe maybeRoute;
     if (0 == routeVec.size()) {
-        return root.getRoute();
-        } else {
-            return root.getRoute(routeVec.cbegin(), routeVec.cend(), &args);
-        }
+        maybeRoute = root.getRoute();
+    } else {
+        maybeRoute = root.getRoute(routeVec.cbegin(), routeVec.cend(), &args);
+    }
+
+    if (maybeRoute && maybeRoute.matchesVerb(verb)) {
+        return maybeRoute;
+    } else {
+        return Maybe();
+    }
 }
-
-
+    
+ostream& 
+operator<<(ostream& strm, const MatchingRoot& root)
+{
+    root.root.dumpTo("", strm);
+    return strm;
+}
 } // ns fcgi

@@ -124,6 +124,9 @@ public:
     size_t
     sendData(const std::uint8_t* data, size_t len);
 
+    size_t
+    logError(const std::uint8_t* data, size_t len);
+
     void
     exitCode(ProtocolStatus status);
 
@@ -132,9 +135,6 @@ public:
     
     Header
     lastHeader() const { return logicalLastHeader; }
-
-    void
-    abortRequest() {}
 
 protected:
     LogicalSocket(PhysicalSocket* sock, RequestID requestId);
@@ -150,7 +150,10 @@ protected:
     recvDataForHeader(const Header& header, std::uint8_t* data);
 
     size_t
-    flushData(std::uint8_t* data, size_t len);
+    stdoutFlush(std::uint8_t* data, size_t len);
+    
+    size_t
+    stderrFlush();
 
     PhysicalSocket* socket;
     RequestID    logicalRequestId;
@@ -158,9 +161,10 @@ protected:
    
     std::array<std::uint8_t, MaximumContentDataLen> dataBuffer;
     size_t currentWriteHead;
+
+    std::array<std::uint8_t, MaximumContentDataLen> readBuffer;
     size_t currentReadHead;
     size_t currentReadTail;
-    std::array<std::uint8_t, MaximumContentDataLen> readBuffer;
 
 private:
     std::array<std::uint8_t, MaximumPaddingDataLen> padBuffer;
