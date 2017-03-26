@@ -3,7 +3,7 @@
 
 namespace fcgi {
 class MasterServer;
-class ServerConfig;
+struct ServerConfig;
 
 namespace prefork {
 void
