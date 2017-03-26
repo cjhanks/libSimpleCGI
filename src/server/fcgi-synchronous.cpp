@@ -21,11 +21,13 @@ eventLoop(MasterServer* master, ServerConfig, int socket)
 
     do {
         struct sockaddr_in address;
-        socklen_t          address_len;
+        socklen_t address_len = sizeof(address);
+
         int client = accept4(socket, (struct sockaddr*)&address,
                              &address_len, SOCK_CLOEXEC);
         LOG(DEBUG) << "Client = " << client;
         if (client < 0) {
+            perror(nullptr);
             continue;
         } else {
             master->handleInboundSocket(client);

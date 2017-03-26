@@ -20,11 +20,6 @@ namespace {
 void
 bindAndListenSocket(int sockFD, struct sockaddr* server, int serverLen)
 {
-    static int True = 1;
-
-    if (::setsockopt(sockFD, SOL_SOCKET, SO_REUSEADDR, &True, sizeof(True)))
-        throw SocketCreationException("Failed to set reusable");
-
     if (::bind(sockFD, server, serverLen) < 0) {
         throw SocketCreationException("Failed to bind socket");
     }
@@ -71,6 +66,11 @@ tcpSocket(const std::string& ip, int port)
     int sockFD = ::socket(AF_INET, SOCK_STREAM, 0);
     if (sockFD < 0) {
         throw SocketCreationException("Failed to create TCP socket");
+    }
+
+    static int True = 1;
+    if (::setsockopt(sockFD, SOL_SOCKET, SO_REUSEADDR, &True, sizeof(True))) {
+        throw SocketCreationException("Failed to set reusable");
     }
 
     bindAndListenSocket(sockFD, (struct sockaddr*)&server, sizeof(server));
