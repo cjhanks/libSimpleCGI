@@ -1,9 +1,9 @@
 CC = g++
 AR = ar
-CXXFLAGS = -O3 -std=c++11 -fPIC -Wall -Wextra -Werror -pedantic
+CXXFLAGS = -O3 -DNDEBUG -std=c++11 -fPIC -Wall -Wextra -Werror -pedantic -pthread -g -fsanitize-recover -fstack-protector -fsanitize=address -fsanitize=undefined
 INCLUDES = -Iinclude
-LIB      = 
-LIBFLAGS = 
+LIB      =
+LIBFLAGS =
 
 SOURCES = src/fcgi-http.cpp \
 		  src/fcgi-socket.cpp \
@@ -15,6 +15,7 @@ SOURCES = src/fcgi-http.cpp \
 		  src/logging.cpp \
 		  src/server/fcgi-pre-fork.cpp \
 		  src/server/fcgi-synchronous.cpp \
+		  src/server/fcgi-threaded.cpp \
 
 
 # - UNIT TEST & EXAMPLES --------------------------------------------------------------------------------------------- #
@@ -24,9 +25,13 @@ EXAMPLE_01_SRC = test/test01.cpp
 EXAMPLE_01_BIN = example_01
 EXAMPLE_02_SRC = test/test02.cpp
 EXAMPLE_02_BIN = example_02
+EXAMPLE_03_SRC = test/test03.cpp
+EXAMPLE_03_BIN = example_03
+EXAMPLE_04_SRC = test/test04.cpp
+EXAMPLE_04_BIN = example_04
 
-EXAMPLE_BINS = $(EXAMPLE_00_BIN) $(EXAMPLE_01_BIN) $(EXAMPLE_02_BIN)
-EXAMPLE_SRCS = $(EXAMPLE_00_SRC) $(EXAMPLE_01_SRC) $(EXAMPLE_02_SRC)
+EXAMPLE_BINS = $(EXAMPLE_00_BIN) $(EXAMPLE_01_BIN) $(EXAMPLE_02_BIN) $(EXAMPLE_03_BIN) $(EXAMPLE_04_BIN)
+EXAMPLE_SRCS = $(EXAMPLE_00_SRC) $(EXAMPLE_01_SRC) $(EXAMPLE_02_SRC) $(EXAMPLE_03_SRC) $(EXAMPLE_04_SRC)
 
 # - LIBRARIES ------------------------------------------------------------------------------------------------------- #
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -48,10 +53,22 @@ $(LIBSIMPLECGI_SHARED): $(OBJECTS)
 $(LIBSIMPLECGI_STATIC): $(OBJECTS)
 		$(AR) rcs $(LIBSIMPLECGI_STATIC) $(OBJECTS)
 
-$(LIBSIMPLECGI_EXAMPLE): $(EXAMPLE_SRCS) $(LIBSIMPLECGI_SHARED)
+$(EXAMPLE_00_BIN): $(LIBSIMPLECGI_SHARED)
 		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(EXAMPLE_00_BIN) $(EXAMPLE_00_SRC) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
+
+$(EXAMPLE_01_BIN): $(LIBSIMPLECGI_SHARED)
 		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(EXAMPLE_01_BIN) $(EXAMPLE_01_SRC) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
+
+$(EXAMPLE_02_BIN): $(LIBSIMPLECGI_SHARED)
 		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(EXAMPLE_02_BIN) $(EXAMPLE_02_SRC) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
+
+$(EXAMPLE_03_BIN): $(LIBSIMPLECGI_SHARED)
+		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(EXAMPLE_03_BIN) $(EXAMPLE_03_SRC) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
+
+$(EXAMPLE_04_BIN): $(LIBSIMPLECGI_SHARED)
+		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(EXAMPLE_04_BIN) $(EXAMPLE_04_SRC) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
+
+$(LIBSIMPLECGI_EXAMPLE): $(EXAMPLE_00_BIN) $(EXAMPLE_01_BIN) $(EXAMPLE_02_BIN) $(EXAMPLE_03_BIN) $(EXAMPLE_04_BIN)
 
 .cpp.o:
 		$(CC) $(CXXFLAGS) $(INCLUDES) -c $< -o $@

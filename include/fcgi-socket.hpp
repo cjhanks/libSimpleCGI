@@ -4,7 +4,10 @@
 #include <sys/uio.h>
 #include <array>
 #include <stdexcept>
+
 #include "fcgi-protocol.hpp"
+#include "logging.hpp"
+
 
 namespace fcgi {
 class SocketCreationException : public std::runtime_error {
@@ -48,7 +51,7 @@ public:
     recv(_T* data, const size_t& len) {
         return recvRaw((std::uint8_t*) data, len * sizeof(_T));
     }
-    
+
     template <typename... _Args>
     ssize_t
     recvVec(_Args&&... args) {
@@ -65,13 +68,13 @@ public:
         return sendRaw(static_cast<const std::uint8_t*>(data),
                        len * sizeof(_T));
     }
-    
+
     template <typename... _Args>
     ssize_t
     sendVec(_Args&&... args) {
         static constexpr size_t ArgCount = sizeof...(_Args) / 2;
-        struct iovec vec[ArgCount];
-        buildRawVec(vec, args...);
+        struct iovec vec[ArgCount] = {};
+        buildRawVec(vec, std::forward<_Args>(args)...);
         return sendRawVec(vec, ArgCount);
     }
 
@@ -83,44 +86,49 @@ private:
 
     ssize_t
     recvRaw(std::uint8_t* data, const size_t& size);
-    
+
     ssize_t
     sendRaw(const std::uint8_t* data, const size_t& size);
-    
+
     template <typename _Data, typename... _Args>
     void
     buildRawVec(struct iovec* vec, _Data data, const size_t len,
                 _Args&&...args) {
         vec->iov_base = (void*)data;
         vec->iov_len  = len;
-        buildRawVec(++vec, args...);
+        buildRawVec(vec + 1, args...);
     }
 
+    template <typename _Data>
     void
-    buildRawVec(struct iovec*) { return; }
+    buildRawVec(struct iovec* vec, _Data data, const size_t len) {
+        vec->iov_base = (void*)data;
+        vec->iov_len  = len;
+    }
 
     ssize_t
     sendRawVec(struct iovec* vec, const size_t count);
-    
+
     ssize_t
     recvRawVec(struct iovec* vec, const size_t count);
 };
 
-class LogicalSocket { 
+class LogicalSocket {
 public:
     static LogicalSocket*
     constructLogicalSocket(PhysicalSocket* physicalSocket);
+
     virtual ~LogicalSocket();
 
     RequestID
     requestId() const;
 
-    virtual RequestClass 
+    virtual RequestClass
     requestClass() const = 0;
 
     size_t
     readData(std::uint8_t* data, size_t len);
-    
+
     size_t
     sendData(const std::uint8_t* data, size_t len);
 
@@ -132,13 +140,13 @@ public:
 
     Header
     getHeader();
-    
+
     Header
     lastHeader() const { return logicalLastHeader; }
 
 protected:
     LogicalSocket(PhysicalSocket* sock, RequestID requestId);
-    
+
     template <typename _Tp>
     size_t
     recvDataForHeader(const Header& header, _Tp* data) {
@@ -151,14 +159,14 @@ protected:
 
     size_t
     stdoutFlush(std::uint8_t* data, size_t len);
-    
+
     size_t
     stderrFlush();
 
     PhysicalSocket* socket;
     RequestID    logicalRequestId;
     Header logicalLastHeader;
-   
+
     std::array<std::uint8_t, MaximumContentDataLen> dataBuffer;
     size_t currentWriteHead;
 
@@ -174,11 +182,12 @@ class LogicalApplicationSocket : public LogicalSocket {
 public:
     LogicalApplicationSocket(PhysicalSocket* physicalSocket,
                              Header header);
+    virtual ~LogicalApplicationSocket() = default;
 
-    virtual RequestClass 
+    virtual RequestClass
     requestClass() const final { return RequestClass::APPLICATION; }
-    
-    bool 
+
+    bool
     mergeKeyValueMap(Header& header, KeyValueMap& kvMap);
 
 private:
@@ -190,8 +199,9 @@ class LogicalManagementSocket : public LogicalSocket {
 public:
     LogicalManagementSocket(PhysicalSocket* physicalSocket,
                             Header header);
-    
-    virtual RequestClass 
+    virtual ~LogicalManagementSocket() = default;
+
+    virtual RequestClass
     requestClass() const final { return RequestClass::MANAGEMENT; }
 
 private:

@@ -26,7 +26,7 @@ endianSwitch(_Tp data) {
 template <typename _Tp>
 static constexpr typename std::enable_if<sizeof(_Tp) == 2, _Tp>::type
 endianSwitch(_Tp data) {
-#if __GNUC_PREREQ(4, 8) 
+#if __GNUC_PREREQ(4, 8)
         return __builtin_bswap16(data);
 #else
         return (data << 8) | (data >> 8);
@@ -34,7 +34,7 @@ endianSwitch(_Tp data) {
 }
 
 string
-headerTypeToString(HeaderType t) 
+headerTypeToString(HeaderType t)
 {
     switch (t) {
         case HeaderType::BEGIN_REQUEST:
@@ -76,10 +76,12 @@ bool
 readIntoKeyValueMap(const uint8_t* data, size_t len,
                     KeyValueMap& keyValueMap)
 {
+    assert(data != nullptr);
+
     const uint8_t* begin = data;
     const uint8_t* end   = data + len;
 
-    static auto parseLength = [&]() -> uint32_t {
+    auto parseLength = [&]() -> uint32_t {
         if (1 != (*begin) >> 7) {
             assert(begin + 1 <= end);
             return *(begin++);
@@ -98,13 +100,13 @@ readIntoKeyValueMap(const uint8_t* data, size_t len,
         // parse name length
         size_t keyLength = parseLength();
         size_t valLength = parseLength();
-    
+
         assert(begin + keyLength + valLength <= end);
-        const string key(begin, 
+        const string key(begin,
                          begin + keyLength);
         const string val(begin + keyLength,
                          begin + keyLength + valLength);
-        
+
         keyValueMap[key] = val;
         begin += (keyLength + valLength);
     }
@@ -113,6 +115,11 @@ readIntoKeyValueMap(const uint8_t* data, size_t len,
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+Header::Header()
+{
+  memset(this, 0, sizeof(*this));
+}
+
 bool
 Header::isManagementRecord() const
 {
@@ -144,6 +151,11 @@ operator<<(ostream& strm, const Header& h)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
+MessageEndRequest::MessageEndRequest()
+{
+  memset(this, 0, sizeof(*this));
+}
+
 void
 MessageBeginRequest::switchEndian()
 {
@@ -158,7 +170,7 @@ MessageBeginRequest::shouldKeepConnection() const
     static constexpr size_t KeepConn = 1;
     return flags & KeepConn;
 }
-    
+
 ostream&
 operator<<(ostream& strm, const MessageBeginRequest& msg)
 {
@@ -170,7 +182,7 @@ operator<<(ostream& strm, const MessageBeginRequest& msg)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-    
+
 void
 MessageEndRequest::switchEndian()
 {

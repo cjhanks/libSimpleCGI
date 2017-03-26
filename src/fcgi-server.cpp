@@ -14,6 +14,8 @@
 #include "fcgi-handler.hpp"
 #include "server/fcgi-pre-fork.hpp"
 #include "server/fcgi-synchronous.hpp"
+#include "server/fcgi-threaded.hpp"
+
 #include "logging.hpp"
 
 namespace fcgi {
@@ -39,7 +41,7 @@ application(MasterServer* master, LogicalApplicationSocket* sock)
 
 MasterServer::MasterServer(ServerConfig config, int socket)
     : serverConfig(config), rawSock(socket)
-{  
+{
     int       optVal;
     socklen_t optLen = sizeof(optVal);
     if (getsockopt(socket, SOL_SOCKET, SO_ACCEPTCONN, &optVal, &optLen)
@@ -52,16 +54,16 @@ MasterServer::MasterServer(ServerConfig config, int socket)
 }
 
 void
-MasterServer::serveForever() 
+MasterServer::serveForever()
 {
     switch (serverConfig.concurrencyModel) {
         case ServerConfig::ConcurrencyModel::SYNCHRONOUS:
             sync::eventLoop(this, serverConfig, rawSock);
             break;
         case ServerConfig::ConcurrencyModel::THREADED:
+            threaded::eventLoop(this, serverConfig, rawSock);
             break;
         case ServerConfig::ConcurrencyModel::PREFORKED:
-            LOG(INFO) << "Server forked";
             prefork::eventLoop(this, serverConfig, rawSock);
             break;
     }
@@ -75,7 +77,7 @@ MasterServer::handleInboundSocket(int sock)
 
     switch (logic->requestClass()) {
         case RequestClass::APPLICATION:
-            application(this, 
+            application(this,
                         static_cast<LogicalApplicationSocket*>(logic.get()));
             break;
 
@@ -83,6 +85,8 @@ MasterServer::handleInboundSocket(int sock)
             break;
 
         default:
+            LOG(WARNING)
+                << "Unknown request type";
             assert(1 == 0);
             close(sock);
             break;
@@ -98,11 +102,11 @@ MasterServer::dumpTo(ostream& strm) const
          << string(80, '-') << endl;
 
     serverConfig.dumpTo(strm);
-    
+
     strm << httpRoutes;
     serverAssets.dumpTo(strm);
 }
-    
+
 void
 ServerConfig::dumpTo(ostream& strm) const
 {

@@ -10,6 +10,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <iostream>
 #include <list>
 #include <mutex>
 #include <thread>
@@ -92,7 +93,8 @@ void
 clientLoop(SocketQueue* queue, MasterServer* server)
 {
     do {
-        server->handleInboundSocket(queue->get());
+        int sock = queue->get();
+        server->handleInboundSocket(sock);
     } while (true);
 }
 } // ns
@@ -103,8 +105,8 @@ eventLoop(MasterServer* master, ServerConfig config, int socket)
 {
     ::signal(SIGPIPE, SIG_IGN);
 
-    SocketQueue queue;
     std::vector<std::thread> threads;
+    SocketQueue queue;
     for (size_t i = 0; i < config.childCount; ++i) {
         threads.emplace_back(
             std::thread(std::bind(clientLoop, &queue, master)));

@@ -5,10 +5,11 @@
 
 namespace fcgi {
 enum class FastWEB {
-    Version_0_1     = 1
+    Version_0_1     = 1,
+    Version_0_2     = 2,
 };
 
-static constexpr FastWEB CurrentVersion = FastWEB::Version_0_1;
+static constexpr FastWEB CurrentVersion = FastWEB::Version_0_2;
 
 std::string
 versionToString(const FastWEB& version);

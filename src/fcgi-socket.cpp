@@ -28,7 +28,7 @@ domainSocket(const string& path)
             throw SocketCreationException(path);
         }
     }
-    
+
     server.sun_family = AF_UNIX;
     std::memset(server.sun_path, 0, sizeof(server.sun_path));
     copy(path.begin(), path.end(), server.sun_path);
@@ -40,18 +40,18 @@ domainSocket(const string& path)
 
     if (::bind(sockFD, (struct sockaddr*) &server, sizeof(server)) < 0) {
         throw SocketCreationException("Failed to bind socket");
-    } 
+    }
 
     if (::listen(sockFD, 128) < 0) {
         throw SocketCreationException("Failed to listen");
     }
-    
+
     return sockFD;
 }
 
 PhysicalSocket::PhysicalSocket(int sock)
     : rawSock(sock)
-{} 
+{}
 
 PhysicalSocket::~PhysicalSocket()
 {
@@ -99,7 +99,7 @@ PhysicalSocket::sendRaw(const uint8_t* data, const size_t& size)
 ssize_t
 PhysicalSocket::sendRawVec(struct iovec* vec, const size_t count)
 {
-    do { 
+    do {
         ssize_t rc = ::writev(rawSock, vec, count);
         if (rc < 0) {
             if (errno == EAGAIN) {
@@ -117,7 +117,7 @@ PhysicalSocket::sendRawVec(struct iovec* vec, const size_t count)
 ssize_t
 PhysicalSocket::recvRawVec(struct iovec* vec, const size_t count)
 {
-    do { 
+    do {
         ssize_t rc = ::readv(rawSock, vec, count);
         if (rc < 0) {
             if (errno == EAGAIN) {
@@ -132,12 +132,12 @@ PhysicalSocket::recvRawVec(struct iovec* vec, const size_t count)
 }
 
 void
-PhysicalSocket::close() 
+PhysicalSocket::close()
 {
     if (rawSock < 0) {
         throw SocketStateException("Socket in wrong state");
     }
-    
+
     ::close(rawSock);
     rawSock = -1;
 }
@@ -152,7 +152,7 @@ LogicalSocket::constructLogicalSocket(PhysicalSocket* physicalSocket)
     } else {
         header.switchEndian();
     }
-    
+
     if (header.isManagementRecord()) {
         assert(0 == 1);
         //return new LogicalManagementSocket(physicalSocket, header);
@@ -162,8 +162,11 @@ LogicalSocket::constructLogicalSocket(PhysicalSocket* physicalSocket)
 }
 
 LogicalSocket::LogicalSocket(PhysicalSocket* sock, RequestID requestId)
-    : socket(sock), logicalRequestId(requestId), 
+    : socket(sock),
+      logicalRequestId(requestId),
+      dataBuffer {0},
       currentWriteHead(0),
+      readBuffer {0},
       currentReadHead(0),
       currentReadTail(0)
 {}
@@ -176,7 +179,7 @@ LogicalSocket::~LogicalSocket()
 size_t
 LogicalSocket::recvDataForHeader(const Header& header, uint8_t* data)
 {
-    ssize_t recvData = socket->recvVec(data, 
+    ssize_t recvData = socket->recvVec(data,
                                        header.contentLength,
                                        padBuffer.data(),
                                        header.paddingLength);
@@ -186,7 +189,7 @@ LogicalSocket::recvDataForHeader(const Header& header, uint8_t* data)
 
     return recvData - header.paddingLength;
 }
-    
+
 size_t
 LogicalSocket::readData(uint8_t* data, size_t len)
 {
@@ -210,27 +213,27 @@ LogicalSocket::readData(uint8_t* data, size_t len)
             return len;
         }
     }
-    
+
     if (len == 0) {
         return 0;
     }
-    
+
     assert(currentReadHead == currentReadTail);
     currentReadHead = 0;
     currentReadTail = 0;
-    
+
     // 2: Access new data
     Header header(lastHeader());
-     
+
     if (header.type == HeaderType::STDIN) {
         currentReadTail = recvDataForHeader(header, readBuffer.data());
         assert(currentReadTail == header.contentLength);
         header = getHeader();
         return (originalLen - len) + readData(data, len);
     } else {
-        LOG(INFO) << "Reads are done! " << header;
+        LOG(DEBUG) << "Reads are done! " << header;
     }
-    
+
     return originalLen - len;
 }
 
@@ -261,7 +264,7 @@ LogicalSocket::logError(const uint8_t* data, size_t len)
     header.contentLength = static_cast<uint16_t>(len);
     header.paddingLength = static_cast<uint8_t>(0);
     header.switchEndian();
-    
+
     return socket->sendVec(&header, sizeof(header), data, len);
 }
 
@@ -286,10 +289,11 @@ LogicalSocket::exitCode(ProtocolStatus status)
     header.paddingLength = static_cast<uint8_t>(0);
     header.reserved      = 0;
     header.switchEndian();
-    
-    ssize_t size = socket->sendVec(&header, sizeof(header), &endReq, 
-                                   sizeof(endReq));
+
+    ssize_t size = socket->sendVec(&header, sizeof(header),
+                                   &endReq, sizeof(endReq));
     assert(size == sizeof(header) + sizeof(endReq));
+    (void) size;
 }
 
 size_t
@@ -308,11 +312,11 @@ LogicalSocket::stdoutFlush(uint8_t* data, size_t len)
     size_t flushSize = socket->sendVec(&header, sizeof(header), data, len);
     currentWriteHead -= len;
     assert(currentWriteHead == 0);
-    
+
     return flushSize;
 }
 
-size_t 
+size_t
 LogicalSocket::stderrFlush()
 {
     return logError(nullptr, 0);
@@ -345,10 +349,12 @@ LogicalApplicationSocket::LogicalApplicationSocket(
 bool
 LogicalApplicationSocket::mergeKeyValueMap(Header& header, KeyValueMap& kvMap)
 {
-    if (header.contentLength != recvDataForHeader(header, dataBuffer.data())) {
+    auto contentLength = header.contentLength;
+    assert(contentLength <= dataBuffer.size());
+    if (contentLength != recvDataForHeader(header, dataBuffer.data())) {
         return false;
-    } 
-    
+    }
+
     return readIntoKeyValueMap(dataBuffer.data(), header.contentLength, kvMap);
 }
 

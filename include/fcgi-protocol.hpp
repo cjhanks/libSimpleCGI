@@ -50,6 +50,8 @@ enum class HeaderType : std::uint8_t {
 using RequestID = std::uint16_t;
 
 struct Header {
+    Header();
+
     Version         version;
     HeaderType      type;
     RequestID       requestId;
@@ -84,7 +86,7 @@ struct MessageBeginRequest {
 
     void
     switchEndian();
-    
+
     bool
     shouldKeepConnection() const;
 
@@ -99,6 +101,8 @@ enum class ProtocolStatus : std::uint8_t {
 };
 
 struct MessageEndRequest {
+    MessageEndRequest();
+
     std::uint32_t       appStatus;
     ProtocolStatus      protocolStatus;
     std::uint8_t        reserved[3];
