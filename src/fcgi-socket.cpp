@@ -16,11 +16,28 @@ namespace fcgi {
 using std::copy;
 using std::string;
 
+namespace {
+void
+bindAndListenSocket(int sockFD, struct sockaddr* server, int serverLen)
+{
+    static int True = 1;
+
+    if (::setsockopt(sockFD, SOL_SOCKET, SO_REUSEADDR, &True, sizeof(True)))
+        throw SocketCreationException("Failed to set reusable");
+
+    if (::bind(sockFD, server, serverLen) < 0) {
+        throw SocketCreationException("Failed to bind socket");
+    }
+
+    if (::listen(sockFD, 128) < 0) {
+        throw SocketCreationException("Failed to listen");
+    }
+}
+} // ns
 
 int
 domainSocket(const string& path)
 {
-    int sockFD = -1;
     struct sockaddr_un server;
     struct stat fstat;
     if (::stat(path.c_str(), &fstat) >= 0) {
@@ -33,18 +50,30 @@ domainSocket(const string& path)
     std::memset(server.sun_path, 0, sizeof(server.sun_path));
     copy(path.begin(), path.end(), server.sun_path);
 
-    sockFD = ::socket(AF_UNIX, SOCK_STREAM, 0);
+    int sockFD = ::socket(AF_UNIX, SOCK_STREAM, 0);
     if (sockFD < 0) {
         throw SocketCreationException("Failed to create domain socket");
     }
 
-    if (::bind(sockFD, (struct sockaddr*) &server, sizeof(server)) < 0) {
-        throw SocketCreationException("Failed to bind socket");
+    bindAndListenSocket(sockFD, (struct sockaddr*)&server, sizeof(server));
+
+    return sockFD;
+}
+
+int
+tcpSocket(const std::string& ip, int port)
+{
+    struct sockaddr_in server;
+    server.sin_port = htons(port);
+    server.sin_addr.s_addr = ::inet_addr(ip.c_str());
+    server.sin_family = AF_INET;
+
+    int sockFD = ::socket(AF_INET, SOCK_STREAM, 0);
+    if (sockFD < 0) {
+        throw SocketCreationException("Failed to create TCP socket");
     }
 
-    if (::listen(sockFD, 128) < 0) {
-        throw SocketCreationException("Failed to listen");
-    }
+    bindAndListenSocket(sockFD, (struct sockaddr*)&server, sizeof(server));
 
     return sockFD;
 }
