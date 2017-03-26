@@ -1,6 +1,7 @@
 CC = g++
 AR = ar
-CXXFLAGS = -O3 -DNDEBUG -std=c++11 -fPIC -Wall -Wextra -Werror -pedantic -pthread -g -fsanitize-recover -fstack-protector -fsanitize=address -fsanitize=undefined
+#CXXFLAGS = -O3 -DNDEBUG -std=c++11 -fPIC -Wall -Wextra -Werror -pedantic -pthread -g -fsanitize-recover -fstack-protector -fsanitize=address -fsanitize=undefined
+CXXFLAGS = -O3 -DNDEBUG -std=c++11 -fPIC -Wall -Wextra -Werror -pedantic -pthread -g
 INCLUDES = -Iinclude
 LIB      =
 LIBFLAGS =
@@ -31,9 +32,11 @@ EXAMPLE_04_SRC = test/test04.cpp
 EXAMPLE_04_BIN = example_04
 EXAMPLE_05_SRC = test/test05.cpp
 EXAMPLE_05_BIN = example_05
+EXAMPLE_06_SRC = test/test06.cpp
+EXAMPLE_06_BIN = example_06
 
-EXAMPLE_BINS = $(EXAMPLE_00_BIN) $(EXAMPLE_01_BIN) $(EXAMPLE_02_BIN) $(EXAMPLE_03_BIN) $(EXAMPLE_04_BIN) $(EXAMPLE_05_BIN)
-EXAMPLE_SRCS = $(EXAMPLE_00_SRC) $(EXAMPLE_01_SRC) $(EXAMPLE_02_SRC) $(EXAMPLE_03_SRC) $(EXAMPLE_04_SRC) $(EXAMPLE_05_SRC)
+EXAMPLE_BINS = $(EXAMPLE_00_BIN) $(EXAMPLE_01_BIN) $(EXAMPLE_02_BIN) $(EXAMPLE_03_BIN) $(EXAMPLE_04_BIN) $(EXAMPLE_05_BIN) $(EXAMPLE_06_BIN)
+EXAMPLE_SRCS = $(EXAMPLE_00_SRC) $(EXAMPLE_01_SRC) $(EXAMPLE_02_SRC) $(EXAMPLE_03_SRC) $(EXAMPLE_04_SRC) $(EXAMPLE_05_SRC) $(EXAMPLE_06_SRC)
 
 # - LIBRARIES ------------------------------------------------------------------------------------------------------- #
 OBJECTS = $(SOURCES:.cpp=.o)
@@ -73,7 +76,10 @@ $(EXAMPLE_04_BIN): $(LIBSIMPLECGI_SHARED)
 $(EXAMPLE_05_BIN): $(LIBSIMPLECGI_SHARED)
 		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(EXAMPLE_05_BIN) $(EXAMPLE_05_SRC) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
 
-$(LIBSIMPLECGI_EXAMPLE): $(EXAMPLE_00_BIN) $(EXAMPLE_01_BIN) $(EXAMPLE_02_BIN) $(EXAMPLE_03_BIN) $(EXAMPLE_04_BIN) $(EXAMPLE_05_BIN)
+$(EXAMPLE_06_BIN): $(LIBSIMPLECGI_SHARED)
+		$(CC) $(CXXFLAGS) $(INCLUDES) -o $(EXAMPLE_06_BIN) $(EXAMPLE_06_SRC) $(LIBFLAGS) $(LIB) -L. -lSimpleCGI
+
+$(LIBSIMPLECGI_EXAMPLE): $(EXAMPLE_00_BIN) $(EXAMPLE_01_BIN) $(EXAMPLE_02_BIN) $(EXAMPLE_03_BIN) $(EXAMPLE_04_BIN) $(EXAMPLE_05_BIN) $(EXAMPLE_06_BIN)
 
 .cpp.o:
 		$(CC) $(CXXFLAGS) $(INCLUDES) -c $< -o $@
