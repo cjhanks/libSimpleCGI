@@ -34,7 +34,7 @@ private:
     static int MaximumLogLevel;
     const int level;
 
-    void 
+    void
     printHeader();
 };
 } // ns fcgi

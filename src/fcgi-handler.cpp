@@ -50,7 +50,7 @@ HttpRequest::dumpRequestDebugTo(std::ostream& strm)
          << contentLength()
          << "]"
          << endl;
-    
+
     strm << "    FCGI Headers:"
          << endl;
     for (auto& ref: httpHeaders) {
@@ -86,10 +86,10 @@ HttpRequest::dumpRequestDebugTo(std::ostream& strm)
              << ref.second
              << endl;
     }
-    
+
     strm << endl;
 }
-    
+
 string
 HttpRequest::getHeader(string key, const string& defaultValue) const
 {
@@ -104,7 +104,7 @@ HttpRequest::getHeader(string key, const string& defaultValue) const
     };
 
     std::transform(key.begin(), key.end(), key.begin(), cleanHeader);
-                  
+
     auto it = httpHeaders.find(key);
     if (it == httpHeaders.end() || it->second.size() == 0) {
         return defaultValue;
@@ -118,7 +118,7 @@ HttpRequest::contentLength() const
 {
     return std::stoul(getHeader("CONTENT_LENGTH", "0"));
 }
-    
+
 size_t
 HttpRequest::recvAll(vector<uint8_t>& data)
 {
@@ -142,7 +142,7 @@ HttpRequest::recv(uint8_t* data, size_t len)
     if (contentSize == bytesRead) {
         return 0;
     } else {
-        size_t newBytes = client->readData(data, 
+        size_t newBytes = client->readData(data,
                                            std::min(contentSize - bytesRead,
                                                     len));
         if (newBytes > 0) {
@@ -176,7 +176,7 @@ HttpRequest::HttpRequest(LogicalApplicationSocket* client)
     if (queryIter != httpHeaders.end()) {
         queryArgs = QueryArgument::fromRawString(queryIter->second);
     }
-    
+
     // Find the Verb
     auto verbStr = httpHeaders.find(REQUEST_VERB);
     if (verbStr == httpHeaders.end()) {
@@ -185,7 +185,7 @@ HttpRequest::HttpRequest(LogicalApplicationSocket* client)
         httpVerb = verbStringToVerb(verbStr->second);
     }
 }
-    
+
 Maybe
 HttpRequest::getRoute(MasterServer* master)
 {
@@ -212,7 +212,7 @@ statusCodeToString(size_t code) {
 } // ns
 
 HttpHeader::HttpHeader(const size_t& responseCode, const string& contentType)
-    : responseCode(responseCode), 
+    : responseCode(responseCode),
       contentType(contentType),
       responseString(statusCodeToString(responseCode))
 {}
