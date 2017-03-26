@@ -37,6 +37,9 @@ public:
 int
 domainSocket(const std::string& path);
 
+int
+tcpSocket(const std::string& ip, int port);
+
 class PhysicalSocket {
 public:
     PhysicalSocket(int sock);
