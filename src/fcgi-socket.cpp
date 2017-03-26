@@ -194,9 +194,9 @@ LogicalSocket::constructLogicalSocket(PhysicalSocket* physicalSocket)
 LogicalSocket::LogicalSocket(PhysicalSocket* sock, RequestID requestId)
     : socket(sock),
       logicalRequestId(requestId),
-      dataBuffer {0},
+      dataBuffer {},
       currentWriteHead(0),
-      readBuffer {0},
+      readBuffer {},
       currentReadHead(0),
       currentReadTail(0)
 {}
