@@ -12,7 +12,7 @@
 using namespace fcgi;
 
 #if __GNUC_PREREQ(4, 8)
-std::thread_local pid_t Pid = -1;
+thread_local pid_t Pid = -1;
 #else
 __thread pid_t Pid = -1;
 #endif
@@ -20,12 +20,12 @@ __thread pid_t Pid = -1;
 class RouteHandler {
 public:
     bool
-    operator()(HttpRequest& req, HttpResponse& res) 
+    operator()(HttpRequest& req, HttpResponse& res)
     {
         switch (req.verb()) {
             case HttpVerb::GET:
                 return this->get(req, res);
-            
+
             case HttpVerb::POST:
             case HttpVerb::PUT:
                 return this->put(req, res);
@@ -34,7 +34,7 @@ public:
                 return true;
         }
     }
-    
+
     bool
     get(HttpRequest& req, HttpResponse& res)
     {
@@ -43,13 +43,13 @@ public:
         } else {
             res.setResponse(HttpHeader(200, MimeType::APPLICATION_JSON));
         }
-        
+
         res.write("{\"key\": \"");
         res.write(std::to_string(Pid));
         res.write("\"}");
         return true;
     }
-    
+
     bool
     put(HttpRequest& req, HttpResponse& res)
     {
@@ -78,7 +78,7 @@ main()
 
     MasterServer server(config, domainSocket("/tmp/test.sock"));
     server.assets().addSearchPath("/var/www/static", CacheMode::EAGER);
-    server.routes().installRoute("/fcgi", RouteHandler());    
+    server.routes().installRoute("/fcgi", RouteHandler());
     server.dumpTo(std::cerr);
 
     server.serveForever();
