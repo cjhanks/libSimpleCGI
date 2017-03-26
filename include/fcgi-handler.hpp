@@ -19,23 +19,23 @@ class HttpRequest {
 public:
     HttpRequest(LogicalApplicationSocket* client);
 
-    HttpVerb 
+    HttpVerb
     verb() const { return httpVerb; }
 
     std::string
     route() const { return httpRoute; }
-    
+
     /// {@
     /// All key-value accessors have the behavior of returning an empty string
     /// when the key cannot be found.  No exceptions will be thrown for missing
     /// values.
-    
+
     // Access an HTTP header sent by the upstream FCGI server
     // the query will be converted to all upper case.
     std::string
-    getHeader(std::string key, 
+    getHeader(std::string key,
               const std::string& defaultValue = "") const;
-    
+
     // Access a query argument from the url:
     // ?query=value
     std::string
@@ -48,7 +48,7 @@ public:
     std::string
     getRouteArgument(const std::string& key);
     /// @}
-    
+
     // NOTE: Currently this is not a "cheap" function, as it performs string parsing on
     // every operation.
     size_t
@@ -59,17 +59,17 @@ public:
     ////////////////////////////////////////////////////////////////////////////
     size_t
     recvAll(std::vector<std::uint8_t>& data);
-    
+
     template <typename _Tp>
     size_t
     recv(_Tp* data, size_t count) {
-        return recv(reinterpret_cast<std::uint8_t*>(data), 
+        return recv(reinterpret_cast<std::uint8_t*>(data),
                     count * sizeof(_Tp));
     }
 
     size_t
     recv(std::uint8_t* data, size_t len);
-    
+
     ////////////////////////////////////////////////////////////////////////////
     // DELETE
     ////////////////////////////////////////////////////////////////////////////
@@ -90,11 +90,11 @@ private:
     QueryArgument queryArgs;
     HttpVerb httpVerb;
     LogicalApplicationSocket* client;
-    
-    // 
+
+    //
     size_t bytesRead;
 };
-    
+
 ////////////////////////////////////////////////////////////////////////////////
 class HttpHeader {
 public:
@@ -105,8 +105,8 @@ public:
 
     void
     addHeader(const std::string& key, const std::string& val);
-
     operator std::string() const;
+
 private:
     const size_t responseCode;
     const std::string contentType;
@@ -118,26 +118,26 @@ class HttpResponse {
 public:
     HttpResponse(LogicalApplicationSocket* client);
     ~HttpResponse();
-    
+
     void
     logError(const std::string& message);
 
-    void 
+    void
     setResponse(const HttpHeader& header);
 
-    size_t 
+    size_t
     write(const std::string& data);
-    
+
     template <typename _Tp>
     size_t
     write(const _Tp* data, size_t count) {
-        return write(reinterpret_cast<const std::uint8_t*>(data), 
+        return write(reinterpret_cast<const std::uint8_t*>(data),
                      count * sizeof(_Tp));
     }
 
-    size_t 
+    size_t
     write(const std::uint8_t* data, size_t len);
-    
+
     void
     close();
 

@@ -9,8 +9,12 @@
 
 
 namespace fcgi {
+#if 0
 static constexpr size_t MaximumContentDataLen = (1 << 16);
-static constexpr size_t MaximumPaddingDataLen = (1 << 8 );
+#else
+static constexpr size_t MaximumContentDataLen = (1 << 12);
+#endif
+static constexpr size_t MaximumPaddingDataLen = (1 <<  8);
 
 
 using KeyValueMap = std::map<std::string, std::string>;

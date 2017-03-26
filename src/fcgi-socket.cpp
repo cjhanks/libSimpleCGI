@@ -184,6 +184,7 @@ LogicalSocket::constructLogicalSocket(PhysicalSocket* physicalSocket)
 
     if (header.isManagementRecord()) {
         assert(0 == 1);
+        return nullptr;
         //return new LogicalManagementSocket(physicalSocket, header);
     } else {
         return new LogicalApplicationSocket(physicalSocket, header);
