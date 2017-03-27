@@ -1,0 +1,33 @@
+# vim: filetype=python
+from os.path import join
+
+Import('Env')
+
+
+libSimpleCGISourceRoots = [
+    '',
+    './common',
+    './common/*',
+    './fcgi',
+    './fcgi/*',
+]
+
+if GetOption('wsgi'):
+    libSimpleCGISourceRoots.extend([
+        './wsgi',
+        './wsgi/*',
+    ])
+
+libSimpleCGISources = []
+
+for path in libSimpleCGISourceRoots:
+  path_search = join(path, '*.cpp')
+  libSimpleCGISources.extend(Glob(path_search))
+
+libSimpleCGI = \
+  Env.StaticLibrary(
+    target='SimpleCGI',
+    source=libSimpleCGISources
+  )
+
+Return('libSimpleCGI')

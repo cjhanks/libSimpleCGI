@@ -1,0 +1,34 @@
+# vim: filetype=python
+from os.path import exists, join
+
+Import('Env')
+
+# --------------------------------------------------------------------- #
+targets = [
+    'test1',
+]
+wsgi_targets = [
+    'wsgi-server',
+]
+
+applications = []
+
+# --------------------------------------------------------------------- #
+
+if GetOption('wsgi'):
+    targets.extend(wsgi_targets)
+
+for target in targets:
+    print(target)
+    scons = join(target, 'SConscript')
+    if exists(scons):
+        applications.append(
+            Env.SConscript(scons, exports={'Env':Env}))
+    else:
+        applications.append(
+            Env.Program(
+                target=join(target, 'main'),
+                source=Glob(join(target, '*.cpp')),
+                exports={'Env':Env}))
+
+# --------------------------------------------------------------------- #

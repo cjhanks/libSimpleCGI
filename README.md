@@ -1,60 +1,71 @@
-FastWEB
-=======
+<!-- vim: ts=2 sw=2 ai tw=72 et
+  -->
 
-FastWEB was written for back-end web application developers with low-latency
-requirements &&|| developers with computationally expensive operations which are
-simply unsuitable for more traditional FCGI languages (Python, Perl, Ruby).
+# Brief
 
-In brief: 
-    FastWEB is an attempt to bring the simplicity of web development from
-    Pythonic frameworks such-as Bottle/Flask to C++.
+  libSimpleCGI is a C++ library targeting Linux/Unix systems
+implementing most of the FastCGI protocol.  It can optionally include a
+WSGI server for hosting Python3 applications (such as Flask/Bottle).
 
-The most basic useful C++ FCGI application might looke like this:
 
-```C++
-#include <string>
-#include <vector>
-#include <fcgi/fcgi.hpp>
+## Why libSimpleCGI?
 
-using std::string;
-using std::vector;
+  If you have a bunch of code already written in C++ which would be
+useful for a web server, there are only a few practical integration
+strategies.
 
-bool route_0(HttpRequest& req, HttpResponse& res);
-bool route_1(HttpRequest& req, HttpResponse& res);
-bool route_2(HttpRequest& req, HttpResponse& res);
+  1.  Use a full-fledged webserver in your codebase.  There are a few
+      relatively good ones... unfortunately all of the good ones are
+      fairly heavy in dependencies.
+  2.  Embed your C++ into a higher level language (such as Python) by
+      making calls through an FFI.
 
-int
-main(void)
-{
-    fcgi::ServerConfig config;
-    MasterServer serve(config, domainSocket("/tmp/domain.sock"));
-    serve.installRoute("/", route_0);
-    serve.installRoute("/path/absolute/truth", route_1);
-    serve.installRoute("path/<routeName>/truth", route_2);
-    serve.serveForever();
+libSimpleCGI does not have all of great features of a fully featured
+webserver such as HTTP/2 and it is not an event-based framework.
+Rather, it relies on NGINX to provide a lot of the functionality built
+into webservers.  If all you need is reasonably performant server
+without the dependency headache's, it might work for you.
 
-    return 0; // never reached
-}
+You might also find it useful that your WSGI Python3 applications can
+run inside the same executable as your C++ code.
 
-bool 
-route_0(HttpRequest& req, HttpResponse& res)
-{   
-    vector<uint_t> allData;
-    req.readAll(allData);
-    if (allData.size() < 32) {
-        req.setResponse(HttpResponse(400, "text/html"));
-    } else {
-        req.setResponse(HttpResponse(400, "text/html"));
-    }
 
-    res.write("<html>");
-    res.write("<body>");
-    res.write("Never tell me: ")
-    res.write(allData);
-    res.write(" again!");
-    res.write("</body>");
-    res.write("</html>");
+# Quickstart
 
-    return true;
-}
+## Build
+
+Dependencies:
+
+  - C++11
+  - Python3-dev (if you want WSGI support)
+
+
+```bash
+  $> scons -j4
+  # OR
+  $> scons -j4 --wsgi
 ```
+
+# Compliance
+
+## FastCGI
+
+  The library presently only implements the `RESPONDER` role for
+`Application` records.  Theoretically everything but section 4
+`Management` records is presently possible.
+
+  In any case, that's enough to be useful in conjunction with NGINX.
+
+  [Specification](https://htmlpreview.github.io/?https://github.com/FastCGI-Archives/fcgi2/blob/master/doc/fcgi-spec.html#S4)
+
+## WSGI
+
+  PEP-0333 is implemented caveat a few things:
+
+  1.  "The server or gateway must transmit the yielded strings to the
+      client in an unbuffered fashion".
+
+      That is not the case in this implementation for a few reasons;
+      NGINX buffers AND the libSimpleCGI implementation also buffers.
+
+  [Specification](https://www.python.org/dev/peps/pep-0333/)
