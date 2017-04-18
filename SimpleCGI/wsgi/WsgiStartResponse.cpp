@@ -20,6 +20,7 @@ struct WsgiStartResponseObject {
 std::tuple<size_t, std::string>
 ParseMessageLine(const std::string& message)
 {
+  // TODO: Error handling
   std::stringstream ss(message);
   size_t code;
   ss >> code;
@@ -44,7 +45,6 @@ __call__(PyObject* self_, PyObject* args, PyObject**)
   auto self = (WsgiStartResponseObject*)self_;
   std::string status(
       PyBytes_AS_STRING(PyUnicode_AsEncodedString(status_, "utf-8", "Error")));
-
 
   size_t code;
   std::string message;
