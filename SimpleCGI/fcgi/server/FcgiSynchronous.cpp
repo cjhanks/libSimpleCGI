@@ -27,8 +27,7 @@ eventLoop(MasterServer* master, ServerConfig config, int socket)
     socklen_t address_len = sizeof(address);
 
     int client = accept4(socket, (struct sockaddr*)&address,
-               &address_len, SOCK_CLOEXEC);
-    LOG(DEBUG) << "Client = " << client;
+                         &address_len, SOCK_CLOEXEC);
     if (client < 0) {
       perror(nullptr);
       continue;

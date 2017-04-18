@@ -6,9 +6,11 @@
 #include "WsgiReader.hpp"
 #include "WsgiError.hpp"
 #include "WsgiStartResponse.hpp"
+#include "PythonHelper.hpp"
 
 
 using namespace fcgi;
+using fcgi::bits::Decref;
 
 
 WsgiApplication::WsgiApplication(Config config)
@@ -37,10 +39,6 @@ WsgiApplication::Initialize()
             << config.app;
   // 1.  Initialize the python library
   Py_Initialize();
-
-  // Override the annoying Python SIGINT handler.
-  // FIXME:  More properly free the memory allocated here.
-  std::signal(SIGINT, SIG_DFL);
 
   // 2.  Load the provided module
   PyObject* moduleName = PyUnicode_FromString(config.module.c_str());
@@ -80,6 +78,7 @@ WsgiHandler::WsgiHandler(fcgi::HttpRequest& req, fcgi::HttpResponse& res)
   : req(req)
   , res(res)
   , environment(PyDict_New())
+  , callback(New(&res))
 {
 }
 
@@ -95,35 +94,30 @@ WsgiHandler::~WsgiHandler()
 bool
 WsgiHandler::operator()(PyObject* wsgiFunctor)
 {
-  PyObject* arglist  = nullptr;
-  PyObject* results  = nullptr;
-  PyObject* iterator = nullptr;
+  Decref arglist;
+  Decref results;
+  Decref iterator;
   bool rc = false;
 
   PopulateEnvironmentCGI();
   PopulateEnvironmentWSGI();
 
-  // -
-  callback = New(&res);
-  if (callback == nullptr)
-    return false;
-
-  // -
   arglist = Py_BuildValue("OO", environment, callback);
   if (arglist == nullptr)
     goto unwind;
 
-  // -
+  // XXX
+  Py_DECREF(environment);
+
+
   results = PyObject_CallObject(wsgiFunctor, arglist);
   if (results == nullptr)
     goto unwind;
 
   iterator = PyObject_GetIter(results);
-  if (!PyIter_Check(iterator)) {
+  if (!PyIter_Check(iterator))
     goto unwind;
-  }
 
-  // -
   while (PyObject* elem = PyIter_Next(iterator)) {
     if (!PyBytes_Check(elem)) {
       LOG(WARNING) << "UNKNOWN TYPE";
@@ -139,30 +133,36 @@ WsgiHandler::operator()(PyObject* wsgiFunctor)
   rc = true;
 
 unwind:
-  if (arglist)
-    Py_DECREF(arglist);
-
-  if (results)
-    Py_DECREF(results);
-
-  if (iterator)
-    Py_DECREF(iterator);
 
   return rc;
 }
+
+namespace {
+void
+AddToDict(PyObject* dict, PyObject* k, PyObject* v)
+{
+    PyDict_SetItem(dict, k, v);
+    Py_DECREF(k);
+
+    if (v == Py_False || v == Py_True)
+      return;
+
+    Py_DECREF(v);
+}
+} // ns
 
 void
 WsgiHandler::PopulateEnvironmentCGI()
 {
   for (const auto& pair: req.headers()) {
-    PyDict_SetItem(
-        environment,
-        PyUnicode_FromString(pair.first.c_str()),
-        PyUnicode_FromString(pair.second.c_str())
+    AddToDict(
+      environment,
+      PyUnicode_FromString(pair.first.c_str()),
+      PyUnicode_FromString(pair.second.c_str())
     );
   }
 
-  PyDict_SetItem(
+  AddToDict(
       environment,
       PyUnicode_FromString("PATH_INFO"),
       PyUnicode_FromString(req.GetHeader("DOCUMENT_URI").c_str())
@@ -172,31 +172,33 @@ WsgiHandler::PopulateEnvironmentCGI()
 void
 WsgiHandler::PopulateEnvironmentWSGI()
 {
+  PyObject* name = PyUnicode_FromString("wsgi.version");
   PyDict_SetItem(
+      environment,
+      name,
+      WsgiVersionTuple
+  );
+  Py_DECREF(name);
+
+  AddToDict(
       environment,
       PyUnicode_FromString("wsgi.url_scheme"),
       PyUnicode_FromString(req.GetHeader("REQUEST_SCHEME").c_str())
   );
 
-  PyDict_SetItem(
-      environment,
-      PyUnicode_FromString("wsgi.version"),
-      WsgiVersionTuple
-  );
-
-  PyDict_SetItem(
+  AddToDict(
       environment,
       PyUnicode_FromString("wsgi.multithread"),
       Py_False
   );
 
-  PyDict_SetItem(
+  AddToDict(
       environment,
       PyUnicode_FromString("wsgi.multiprocess"),
       Py_False
   );
 
-  PyDict_SetItem(
+  AddToDict(
       environment,
       PyUnicode_FromString("wsgi.input"),
       New(&req)

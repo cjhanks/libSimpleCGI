@@ -6,10 +6,12 @@
 
 namespace fcgi {
 enum LogLevel {
-  DEBUG   = 2,
-  INFO  = 4,
+  NONE = 0,
+  DEBUG = 2,
+  INFO = 4,
   WARNING = 6,
-  ERROR   = 8
+  ERROR = 8,
+  FATAL = 10
 };
 
 class LOG {
@@ -17,7 +19,17 @@ public:
   static void
   SetLogLevel(const int& newLevel);
 
+  static LOG
+  CHECK(bool rc) {
+    if (rc) {
+      return LOG(NONE);
+    } else {
+      return LOG(FATAL);
+    }
+  }
+
   LOG(const LogLevel& level);
+  LOG(LOG&&) = default;
   ~LOG();
 
   template <typename _Tp>

@@ -69,6 +69,9 @@ private:
   void
   applicationHandler(LogicalApplicationSocket* client);
 
+  void
+  ImplHandleInboundSocket(int sock);
+
 };
 } // ns fcgi
 

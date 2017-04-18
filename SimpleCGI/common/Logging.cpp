@@ -21,6 +21,9 @@ LOG::~LOG()
   if (level >= MaximumLogLevel) {
     std::cerr << std::endl;
   }
+
+  if (level == FATAL)
+    abort();
 }
 
 void

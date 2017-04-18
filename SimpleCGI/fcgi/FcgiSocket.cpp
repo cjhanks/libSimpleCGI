@@ -173,7 +173,7 @@ PhysicalSocket::Close()
 
 
 LogicalSocket*
-LogicalSocket::constructLogicalSocket(PhysicalSocket* physicalSocket)
+LogicalSocket::ConstructLogicalSocket(PhysicalSocket* physicalSocket)
 {
   Header header;
   if (sizeof(header) != physicalSocket->recv(&header, 1)) {

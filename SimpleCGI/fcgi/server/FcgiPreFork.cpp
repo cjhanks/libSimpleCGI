@@ -38,6 +38,8 @@ static struct {
 void
 eventLoop(MasterServer* master, ServerConfig config, int acceptSock)
 {
+  ::signal(SIGPIPE, SIG_IGN);
+
   assert(master != nullptr);
   assert(config.concurrencyModel ==
        ServerConfig::ConcurrencyModel::PREFORKED);

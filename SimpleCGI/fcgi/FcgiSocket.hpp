@@ -118,7 +118,7 @@ private:
 class LogicalSocket {
 public:
   static LogicalSocket*
-  constructLogicalSocket(PhysicalSocket* physicalSocket);
+  ConstructLogicalSocket(PhysicalSocket* physicalSocket);
 
   virtual ~LogicalSocket();
 

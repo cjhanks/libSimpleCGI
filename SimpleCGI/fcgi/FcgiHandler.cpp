@@ -252,7 +252,16 @@ HttpResponse::HttpResponse(LogicalApplicationSocket* client)
 
 HttpResponse::~HttpResponse()
 {
-  client->ExitCode(ProtocolStatus::REQUEST_COMPLETE);
+  // FIXME:  When a socket has a broken pipe error this still tries to send
+  //         more IO, which throws another exception.  The result is an
+  //         unhandled exception in an exception handler.
+  //
+  //         This fixes it... but it's very bad style.
+  try {
+    client->ExitCode(ProtocolStatus::REQUEST_COMPLETE);
+  } catch (...) {
+    LOG(ERROR) << "Failed to send exit code";
+  }
 }
 
 void
@@ -284,6 +293,8 @@ HttpResponse::write(const string& data)
 size_t
 HttpResponse::write(const uint8_t* data, size_t len)
 {
+  assert(nullptr != data);
+  assert(nullptr != client);
   return client->SendData(data, len);
 }
 
