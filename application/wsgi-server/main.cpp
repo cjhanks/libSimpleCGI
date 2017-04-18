@@ -3,6 +3,7 @@
 #include <boost/program_options.hpp>
 
 #include "SimpleCGI/SimpleCGI.hpp"
+#include "SimpleCGI/common/Signal.hpp"
 
 
 namespace {
@@ -20,6 +21,7 @@ int
 main(int argc, char* argv[])
 {
   Settings settings = ParseSettings(argc, argv);
+  fcgi::bits::InstallSignalHandler();
 
   // {
   // Configure the WSGI application
@@ -34,8 +36,8 @@ main(int argc, char* argv[])
   // Configure the fastcgi server.
   fcgi::LOG::SetLogLevel(fcgi::DEBUG);
   fcgi::ServerConfig config;
-  //config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::SYNCHRONOUS;
-  config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::PREFORKED;
+  config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::SYNCHRONOUS;
+  //config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::PREFORKED;
   config.childCount = 4;
   config.callBack = std::bind(&WsgiApplication::Initialize, &app);
   config.catchAll = std::bind(&WsgiApplication::Serve,

@@ -57,8 +57,30 @@ MasterServer::ServeForever()
 void
 MasterServer::HandleInboundSocket(int sock)
 {
+  if (sock < 0) {
+    LOG(ERROR)
+        << "Invalid socket provided for handling";
+    return;
+  }
+
+  try {
+    ImplHandleInboundSocket(sock);
+  } catch (const fcgi::SocketIOException& e) {
+    LOG(INFO) << "Caught IO Exception";
+  } catch (const std::runtime_error& e) {
+    LOG(INFO) << "Caught IO Exception";
+  } catch (const std::exception& e) {
+    LOG(ERROR) << e.what();
+  } catch (...) {
+    LOG(ERROR) << "UNKNOWN EXCEPTION CAUGHT";
+  }
+}
+
+void
+MasterServer::ImplHandleInboundSocket(int sock)
+{
   unique_ptr<LogicalSocket> logic(
-    LogicalSocket::constructLogicalSocket(new PhysicalSocket(sock)));
+    LogicalSocket::ConstructLogicalSocket(new PhysicalSocket(sock)));
 
   switch (logic->requestClass()) {
     case RequestClass::APPLICATION:
@@ -70,9 +92,8 @@ MasterServer::HandleInboundSocket(int sock)
       break;
 
     default:
-      LOG(WARNING)
-        << "Unknown request type";
-      assert(1 == 0);
+      LOG::CHECK(0 == 1)
+          << "Unknown request type from FCGI host";
       close(sock);
       break;
   }
@@ -94,12 +115,7 @@ MasterServer::applicationHandler(LogicalApplicationSocket* client)
     } else {
       maybeRoute.call(req, res);
     }
-  } catch (const SocketStateException& e) {
-    LOG(INFO) << "E1: " << e.what();
-  } catch (const SocketIOException& e) {
-    LOG(INFO) << "E2: " << e.what();
-  } catch (...) {
-  }
+  } catch (...) {}
 }
 
 void

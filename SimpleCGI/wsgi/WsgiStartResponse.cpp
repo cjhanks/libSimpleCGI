@@ -66,10 +66,13 @@ __call__(PyObject* self_, PyObject* args, PyObject**)
     std::string value(
       PyBytes_AS_STRING(PyUnicode_AsEncodedString(valueObj, "utf-8", "Error")));
 
+    Py_DECREF(pair);
     header.addHeader(name, value);
   }
 
   // - Send header response
+  assert(nullptr != self);
+  assert(nullptr != self->res);
   self->res->SetResponse(header);
 
   Py_RETURN_NONE;
