@@ -10,24 +10,80 @@ struct WsgiReaderObject {
 };
 
 ////////////////////////////////////////////////////////////////////////////////
+PyObject*
+Read(PyObject* self_, PyObject* args, PyObject**)
+{
+  Py_ssize_t size;
+  if (!PyArg_ParseTuple(args, "n", &size)) {
+    return nullptr;
+  }
+
+  std::vector<uint8_t> data(size);
+  auto self = (WsgiReaderObject*)self_;
+  self->req->recv(data.data(), data.size());
+
+  return PyBytes_FromStringAndSize((char*)data.data(), data.size());
+}
+
+PyObject*
+ReadLine(PyObject* self_, PyObject* args, PyObject**)
+{
+  auto self = (WsgiReaderObject*)self_;
+  Istream istr = self->req->ToStream();
+
+  std::string line;
+  std::getline(self->req->ToStream(), line);
+
+  return PyBytes_FromStringAndSize(line.c_str(), line.size());
+}
+
+PyObject*
+ReadLines(PyObject* self_, PyObject* args, PyObject**)
+{
+  auto self = (WsgiReaderObject*)self_;
+
+  Istream istr = self->req->ToStream();
+  PyObject* dataList = PyList_New(0);
+  std::string line;
+
+  while (std::getline(istr, line)) {
+    PyObject* data = PyBytes_FromStringAndSize(line.c_str(), line.size());
+    PyList_Append(dataList, data);
+  }
+
+  return dataList;
+}
+
+PyObject*
+SelfIterator(PyObject* self_)
+{
+  auto self = (WsgiReaderObject*)self_;
+  std::vector<uint8_t> buffer(4096);
+
+  auto read = self->req->recv(buffer.data(), buffer.size());
+  if (0 == read)
+    return nullptr;
+  else
+    return PyBytes_FromStringAndSize((char*)buffer.data(), buffer.size());
+}
 
 PyMethodDef
 WsgiReaderMethods[] = {
   {
     "read",
-    (PyCFunction)nullptr,
+    (PyCFunction)Read,
     METH_VARARGS,
     ""
   },
   {
     "readline",
-    (PyCFunction)nullptr,
+    (PyCFunction)ReadLine,
     METH_VARARGS,
     ""
   },
   {
     "readlines",
-    (PyCFunction)nullptr,
+    (PyCFunction)ReadLines,
     METH_VARARGS,
     ""
   },
@@ -63,8 +119,8 @@ WsgiReaderType = {
   0,                            /* tp_clear */
   0,                            /* tp_richcompare */
   0,                            /* tp_weaklistoffset */
-  0,                            /* tp_iter */
-  0,                            /* tp_iternext */
+  PyObject_SelfIter,            /* tp_iter */
+  SelfIterator,                 /* tp_iternext */
   WsgiReaderMethods,            /* tp_methods */
   0,                            /* tp_members */
   0,                            /* tp_getset */
