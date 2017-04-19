@@ -39,6 +39,7 @@ WsgiApplication::Initialize()
             << config.app;
   // 1.  Initialize the python library
   Py_Initialize();
+  PyEval_InitThreads();
 
   // 2.  Load the provided module
   PyObject* moduleName = PyUnicode_FromString(config.module.c_str());
@@ -94,29 +95,17 @@ WsgiHandler::~WsgiHandler()
 bool
 WsgiHandler::operator()(PyObject* wsgiFunctor)
 {
-  Decref arglist;
-  Decref results;
-  Decref iterator;
-  bool rc = false;
-
   PopulateEnvironmentCGI();
   PopulateEnvironmentWSGI();
 
-  arglist = Py_BuildValue("OO", environment, callback);
-  if (arglist == nullptr)
-    goto unwind;
-
-  // XXX
-  Py_DECREF(environment);
-
-
-  results = PyObject_CallObject(wsgiFunctor, arglist);
+  Decref results =
+    PyObject_CallFunctionObjArgs(wsgiFunctor, environment, callback);
   if (results == nullptr)
-    goto unwind;
+    return false;
 
-  iterator = PyObject_GetIter(results);
+  Decref iterator = PyObject_GetIter(results);
   if (!PyIter_Check(iterator))
-    goto unwind;
+    return false;
 
   while (PyObject* elem = PyIter_Next(iterator)) {
     if (!PyBytes_Check(elem)) {
@@ -130,11 +119,7 @@ WsgiHandler::operator()(PyObject* wsgiFunctor)
     Py_DECREF(elem);
   }
 
-  rc = true;
-
-unwind:
-
-  return rc;
+  return true;
 }
 
 namespace {
@@ -172,13 +157,13 @@ WsgiHandler::PopulateEnvironmentCGI()
 void
 WsgiHandler::PopulateEnvironmentWSGI()
 {
-  PyObject* name = PyUnicode_FromString("wsgi.version");
-  PyDict_SetItem(
-      environment,
-      name,
-      WsgiVersionTuple
-  );
-  Py_DECREF(name);
+  //PyObject* name = PyUnicode_FromString("wsgi.version");
+  //PyDict_SetItem(
+  //    environment,
+  //    name,
+  //    WsgiVersionTuple
+  //);
+  //Py_DECREF(name);
 
   AddToDict(
       environment,
