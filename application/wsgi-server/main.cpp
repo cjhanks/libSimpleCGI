@@ -103,5 +103,6 @@ ParseSettings(int argc, char** argv)
     std::exit(1);
 	}
 
+  return settings;
 }
 } // ns

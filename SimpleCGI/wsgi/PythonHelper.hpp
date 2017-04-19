@@ -1,7 +1,10 @@
 #ifndef PYTHON_HELPER_HPP_
 #define PYTHON_HELPER_HPP_
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 #include <Python.h>
+#pragma GCC diagnostic pop
 
 namespace fcgi { namespace bits {
 

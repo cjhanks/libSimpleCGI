@@ -95,7 +95,7 @@ Env.Append(CXXFLAGS=[
     '-Wall',
     '-Wextra',
     '-std=c++11',
-
+    '-Werror',
 ])
 
 Env.Append(CPPFLAGS=[
@@ -181,7 +181,7 @@ if GetOption('wsgi'):
     Env.Append(LIBS=[
         'boost_program_options',
     ])
-    Env.ParseConfig('python3-config --cflags --ldflags')
+    Env.ParseConfig('python3-config --includes --ldflags')
 
 
 # -- BUILD STATIC LIBRARY --------------------------------------------- #

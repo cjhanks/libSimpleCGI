@@ -1,7 +1,7 @@
 #ifndef WSGI_READER_HPP_
 #define WSGI_READER_HPP_
 
-#include <Python.h>
+#include "PythonHelper.hpp"
 #include "SimpleCGI/fcgi/FcgiServer.hpp"
 
 
