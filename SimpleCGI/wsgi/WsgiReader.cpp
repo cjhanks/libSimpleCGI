@@ -1,3 +1,7 @@
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+
+
 #include "WsgiReader.hpp"
 
 using namespace fcgi;
@@ -26,7 +30,7 @@ Read(PyObject* self_, PyObject* args, PyObject**)
 }
 
 PyObject*
-ReadLine(PyObject* self_, PyObject* args, PyObject**)
+ReadLine(PyObject* self_, PyObject*, PyObject**)
 {
   auto self = (WsgiReaderObject*)self_;
   Istream istr = self->req->ToStream();
@@ -38,7 +42,7 @@ ReadLine(PyObject* self_, PyObject* args, PyObject**)
 }
 
 PyObject*
-ReadLines(PyObject* self_, PyObject* args, PyObject**)
+ReadLines(PyObject* self_, PyObject*, PyObject**)
 {
   auto self = (WsgiReaderObject*)self_;
 

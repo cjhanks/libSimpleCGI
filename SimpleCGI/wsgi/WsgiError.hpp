@@ -1,7 +1,7 @@
 #ifndef WSGI_ERROR_HPP_
 #define WSGI_ERROR_HPP_
 
-#include <Python.h>
+#include "PythonHelper.hpp"
 #include "SimpleCGI/fcgi/FcgiServer.hpp"
 
 
