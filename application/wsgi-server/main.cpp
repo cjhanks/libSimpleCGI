@@ -38,6 +38,7 @@ main(int argc, char* argv[])
   fcgi::ServerConfig config;
   config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::SYNCHRONOUS;
   //config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::PREFORKED;
+  //config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::THREADED;
   config.childCount = 4;
   config.callBack = std::bind(&WsgiApplication::Initialize, &app);
   config.catchAll = std::bind(&WsgiApplication::Serve,

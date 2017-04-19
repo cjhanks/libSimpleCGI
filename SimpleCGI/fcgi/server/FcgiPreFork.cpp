@@ -71,12 +71,12 @@ eventLoop(MasterServer* master, ServerConfig config, int acceptSock)
   iov.iov_base = &addr;
   iov.iov_len  = sizeof(addr);
 
-  msg.msg_name    = nullptr;
-  msg.msg_namelen   = 0;
-  msg.msg_iov     = &iov;
-  msg.msg_iovlen    = 1;
-  msg.msg_control   = cmsg_u.control;
-  msg.msg_controllen  = sizeof(cmsg_u.control);
+  msg.msg_name       = nullptr;
+  msg.msg_namelen    = 0;
+  msg.msg_iov        = &iov;
+  msg.msg_iovlen     = 1;
+  msg.msg_control    = cmsg_u.control;
+  msg.msg_controllen = sizeof(cmsg_u.control);
 
   cmsg = CMSG_FIRSTHDR(&msg);
   cmsg->cmsg_len   = CMSG_LEN(sizeof(int));
@@ -157,12 +157,12 @@ spawnChildEventLoop()
   iov.iov_base = &addr;
   iov.iov_len  = sizeof(addr);
 
-  msg.msg_name    = nullptr;
-  msg.msg_namelen   = 0;
-  msg.msg_iov     = &iov;
-  msg.msg_iovlen    = 1;
-  msg.msg_control   = cmsg_u.control;
-  msg.msg_controllen  = sizeof(cmsg_u.control);
+  msg.msg_name       = nullptr;
+  msg.msg_namelen    = 0;
+  msg.msg_iov        = &iov;
+  msg.msg_iovlen     = 1;
+  msg.msg_control    = cmsg_u.control;
+  msg.msg_controllen = sizeof(cmsg_u.control);
 
   do {
     ssize_t len = recvmsg(GlobalContext.dgram_pipe[Pipe::READ], &msg, 0);
