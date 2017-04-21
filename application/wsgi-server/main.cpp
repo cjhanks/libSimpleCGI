@@ -5,6 +5,8 @@
 #include "SimpleCGI/SimpleCGI.hpp"
 #include "SimpleCGI/common/Signal.hpp"
 
+using namespace fcgi;
+
 
 namespace {
 struct Settings {
@@ -15,6 +17,9 @@ struct Settings {
 
 Settings
 ParseSettings(int argc, char** argv);
+
+bool
+testPing(HttpRequest& req, HttpResponse& res);
 } // ns
 
 int
@@ -36,9 +41,9 @@ main(int argc, char* argv[])
   // Configure the fastcgi server.
   fcgi::LOG::SetLogLevel(fcgi::DEBUG);
   fcgi::ServerConfig config;
-  config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::SYNCHRONOUS;
+  //config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::SYNCHRONOUS;
   //config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::PREFORKED;
-  //config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::THREADED;
+  config.concurrencyModel = fcgi::ServerConfig::ConcurrencyModel::THREADED;
   config.childCount = 4;
   config.callBack = std::bind(&WsgiApplication::Initialize, &app);
   config.catchAll = std::bind(&WsgiApplication::Serve,
@@ -49,6 +54,7 @@ main(int argc, char* argv[])
   // -
   fcgi::MasterServer server(
       config, fcgi::DomainSocket(settings.domainSocketPath));
+  server.Routes().InstallRoute("/ping/<something>", testPing);
 
   server.ServeForever();
   // }
@@ -105,5 +111,14 @@ ParseSettings(int argc, char** argv)
 	}
 
   return settings;
+}
+
+bool
+testPing(HttpRequest& req, HttpResponse& res)
+{
+  (void) req;
+  res.SetResponse(HttpHeader(200));
+  res.write("OK");
+  return true;
 }
 } // ns
