@@ -57,6 +57,7 @@ main(int argc, char* argv[])
   server.Routes().InstallRoute("/ping/<something>", testPing);
 
   server.ServeForever();
+  (void) testPing;
   // }
 
   return 0;

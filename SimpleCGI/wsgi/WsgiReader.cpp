@@ -3,6 +3,7 @@
 
 
 #include "WsgiReader.hpp"
+#include "PythonHelper.hpp"
 
 using namespace fcgi;
 
@@ -145,6 +146,8 @@ PyObject*
 New(fcgi::HttpRequest* req)
 {
   static bool Initialized = false;
+
+  bits::AutoGIL gil;
 
   if (!Initialized) {
     WsgiReaderType.tp_new = PyType_GenericNew;
