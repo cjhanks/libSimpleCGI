@@ -1,6 +1,7 @@
 #include "WsgiServer.hpp"
 
 #include <csignal>
+#include <mutex>
 
 #include "SimpleCGI/common/Logging.hpp"
 #include "WsgiReader.hpp"
@@ -11,16 +12,23 @@
 
 using namespace fcgi;
 using fcgi::bits::Decref;
+using fcgi::bits::AutoGIL;
 
 
 WsgiApplication::WsgiApplication(Config config)
   : config(config)
   , module(nullptr)
   , application(nullptr)
-{}
+{
+  // 1.  Initialize the python library
+  Py_Initialize();
+  PyEval_InitThreads();
+}
 
 WsgiApplication::~WsgiApplication()
 {
+  AutoGIL gil;
+
   if (application)
     Py_DECREF(application);
 
@@ -37,9 +45,8 @@ WsgiApplication::Initialize()
             << config.module
             << ":"
             << config.app;
-  // 1.  Initialize the python library
-  Py_Initialize();
-  PyEval_InitThreads();
+
+  AutoGIL gil;
 
   // 2.  Load the provided module
   PyObject* moduleName = PyUnicode_FromString(config.module.c_str());
@@ -78,13 +85,17 @@ WsgiHandler::WsgiVersionTuple = nullptr;
 WsgiHandler::WsgiHandler(fcgi::HttpRequest& req, fcgi::HttpResponse& res)
   : req(req)
   , res(res)
-  , environment(PyDict_New())
+  , environment(nullptr)
   , callback(New(&res))
 {
+  AutoGIL gil;
+  environment = PyDict_New();
 }
 
 WsgiHandler::~WsgiHandler()
 {
+  AutoGIL gil;
+
   if (environment)
     Py_DECREF(environment);
 
@@ -139,6 +150,7 @@ AddToDict(PyObject* dict, PyObject* k, PyObject* v)
 void
 WsgiHandler::PopulateEnvironmentCGI()
 {
+  AutoGIL gil;
   for (const auto& pair: req.headers()) {
     AddToDict(
       environment,
@@ -157,13 +169,14 @@ WsgiHandler::PopulateEnvironmentCGI()
 void
 WsgiHandler::PopulateEnvironmentWSGI()
 {
-  //PyObject* name = PyUnicode_FromString("wsgi.version");
-  //PyDict_SetItem(
-  //    environment,
-  //    name,
-  //    WsgiVersionTuple
-  //);
-  //Py_DECREF(name);
+  AutoGIL gil;
+  PyObject* name = PyUnicode_FromString("wsgi.version");
+  PyDict_SetItem(
+      environment,
+      name,
+      WsgiVersionTuple
+  );
+  Py_DECREF(name);
 
   AddToDict(
       environment,

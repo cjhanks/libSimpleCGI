@@ -41,6 +41,17 @@ private:
   PyObject* data;
 };
 
+class AutoGIL {
+public:
+  AutoGIL()
+    : gil(PyGILState_Ensure()) {}
+
+  ~AutoGIL()
+  { PyGILState_Release(gil); }
+
+private:
+  PyGILState_STATE gil;
+};
 } // ns bits
 } // ns fcgi
 #endif

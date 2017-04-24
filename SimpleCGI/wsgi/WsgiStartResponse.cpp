@@ -5,6 +5,7 @@
 #include <tuple>
 
 #include "SimpleCGI/common/Logging.hpp"
+#include "PythonHelper.hpp"
 
 
 using namespace fcgi;
@@ -128,6 +129,8 @@ PyObject*
 New(fcgi::HttpResponse* res)
 {
   static bool Initialized = false;
+
+  bits::AutoGIL gil;
 
   if (!Initialized) {
     WsgiStartResponseType.tp_new = PyType_GenericNew;
