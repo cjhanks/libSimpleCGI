@@ -1,13 +1,16 @@
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wmissing-field-initializers"
 
-
 #include "WsgiReader.hpp"
+
+#include <algorithm>
+#include <iterator>
+
 #include "PythonHelper.hpp"
+#include "SimpleCGI/SimpleCGI.hpp"
 
-using namespace fcgi;
 
-
+namespace fcgi {
 namespace {
 struct WsgiReaderObject {
   PyObject_HEAD
@@ -23,9 +26,14 @@ Read(PyObject* self_, PyObject* args, PyObject**)
     return nullptr;
   }
 
-  std::vector<uint8_t> data(size);
+  /// FIXME:  This code now needs to use the Istream
   auto self = (WsgiReaderObject*)self_;
-  self->req->recv(data.data(), data.size());
+  Istream istr = self->req->ToStream();
+
+  std::string data;
+  std::copy_n(std::istream_iterator<char>(istr),
+              size,
+              std::back_inserter(data));
 
   return PyBytes_FromStringAndSize((char*)data.data(), data.size());
 }
@@ -62,11 +70,19 @@ ReadLines(PyObject* self_, PyObject*, PyObject**)
 PyObject*
 SelfIterator(PyObject* self_)
 {
-  auto self = (WsgiReaderObject*)self_;
-  std::vector<uint8_t> buffer(4096);
+  static const size_t BufferSize = 4 * 1024;
 
-  auto read = self->req->recv(buffer.data(), buffer.size());
-  if (0 == read)
+  auto self = (WsgiReaderObject*)self_;
+  Istream istr = self->req->ToStream();
+
+  std::string buffer;
+  buffer.reserve(BufferSize);
+
+  std::copy_n(std::istream_iterator<char>(istr),
+              BufferSize,
+              std::back_inserter(buffer));
+
+  if (0 == buffer.size())
     return nullptr;
   else
     return PyBytes_FromStringAndSize((char*)buffer.data(), buffer.size());
@@ -149,6 +165,7 @@ New(fcgi::HttpRequest* req)
 
   bits::AutoGIL gil;
 
+  // If this type is not yet initialized, it needs to be.
   if (!Initialized) {
     WsgiReaderType.tp_new = PyType_GenericNew;
     PyType_Ready(&WsgiReaderType);
@@ -168,3 +185,4 @@ New(fcgi::HttpRequest* req)
 
   return (PyObject*) self;
 }
+} // ns fcgi

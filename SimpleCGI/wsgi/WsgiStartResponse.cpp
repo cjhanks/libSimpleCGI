@@ -8,10 +8,8 @@
 #include "PythonHelper.hpp"
 
 
-using namespace fcgi;
 
-
-namespace {
+namespace fcgi { namespace {
 struct WsgiStartResponseObject {
   PyObject_HEAD
   HttpResponse* res = nullptr;
@@ -68,7 +66,7 @@ __call__(PyObject* self_, PyObject* args, PyObject**)
       PyBytes_AS_STRING(PyUnicode_AsEncodedString(valueObj, "utf-8", "Error")));
 
     Py_DECREF(pair);
-    header.addHeader(name, value);
+    header.Add(name, value);
   }
 
   // - Send header response
@@ -151,3 +149,4 @@ New(fcgi::HttpResponse* res)
 
   return (PyObject*) self;
 }
+} // ns fcgi

@@ -5,30 +5,32 @@ Import('Env')
 
 # --------------------------------------------------------------------- #
 targets = [
-    'test1',
+    'hello_world',
+    'tutorial',
 ]
-wsgi_targets = [
-    'wsgi-server',
-]
-
 applications = []
 
 # --------------------------------------------------------------------- #
 
-if GetOption('wsgi'):
-    targets.extend(wsgi_targets)
-
 for target in targets:
-    print(target)
     scons = join(target, 'SConscript')
     if exists(scons):
         applications.append(
             Env.SConscript(scons, exports={'Env':Env}))
     else:
+        sources = []
+        paths = [
+            './',
+            './*',
+            './*/*',
+        ]
+        for path in paths:
+            sources.extend(Glob(join(target, '{}.cpp'.format(path))))
+
         applications.append(
             Env.Program(
                 target=join(target, 'main'),
-                source=Glob(join(target, '*.cpp')),
+                source=sources,
                 exports={'Env':Env}))
 
 # --------------------------------------------------------------------- #

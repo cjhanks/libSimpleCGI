@@ -2,9 +2,10 @@
 #define WSGI_SERVER_HPP_
 
 #include "PythonHelper.hpp"
-#include "SimpleCGI/fcgi/FcgiServer.hpp"
+#include "SimpleCGI/SimpleCGI.hpp"
 
 ////////////////////////////////////////////////////////////////////////////////
+namespace fcgi {
 
 class WsgiHandler {
 public:
@@ -59,5 +60,6 @@ private:
   void
   InitializeWSGI_Application();
 };
+} // ns fcgi
 
 #endif // WSGI_SERVER_HPP_

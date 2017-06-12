@@ -6,12 +6,12 @@
 
 namespace fcgi {
 enum LogLevel {
-  NONE = 0,
   DEBUG = 2,
   INFO = 4,
   WARNING = 6,
   ERROR = 8,
-  FATAL = 10
+  FATAL = 10,
+  NONE = 12
 };
 
 class LOG {
