@@ -104,6 +104,10 @@ eventLoop(MasterServer* master, ServerConfig config, int socket)
 {
   ::signal(SIGPIPE, SIG_IGN);
 
+  if (config.callBack) {
+    config.callBack();
+  }
+
   std::vector<std::thread> threads;
   SocketQueue queue;
   for (size_t i = 0; i < config.childCount; ++i) {
@@ -115,7 +119,8 @@ eventLoop(MasterServer* master, ServerConfig config, int socket)
     struct sockaddr_in address;
     socklen_t address_len;
     int client = accept4(socket, (struct sockaddr*)&address,
-               &address_len, SOCK_CLOEXEC);
+                         &address_len, SOCK_CLOEXEC);
+    LOG(DEBUG) << "New client: " << client;
     if (client < 0) {
       continue;
     } else {

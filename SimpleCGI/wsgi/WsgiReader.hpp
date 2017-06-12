@@ -4,8 +4,11 @@
 #include "PythonHelper.hpp"
 #include "SimpleCGI/fcgi/FcgiServer.hpp"
 
+namespace fcgi {
 
 PyObject*
 New(fcgi::HttpRequest* req);
+
+} // ns fcgi
 
 #endif

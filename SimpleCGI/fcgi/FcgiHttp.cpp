@@ -116,16 +116,20 @@ QueryArgument::fromRawString(const string& rawString)
   while (tail != string::npos) {
     tail = rawString.find_first_of(Separators, head);
     string element(rawString.substr(head, tail - head));
-    size_t mids = element.find_first_of("=", head);
+    size_t mids = element.find_first_of("=");
 
-    // there is no '=' sign
+    std::string key;
+    std::string value;
+
     if (mids == string::npos) {
-      queryArgs[urlDecode(element)] = "";
+      // there is no '=' sign
+      key = urlDecode(element);
     } else {
-      queryArgs[urlDecode(element.substr(0, mids))] =
-            urlDecode(element.substr(mids + 1));
+      key = urlDecode(element.substr(0, mids));
+      value = urlDecode(element.substr(mids + 1));
     }
 
+    queryArgs[key] = value;
     head = tail + 1;
   }
 
@@ -215,20 +219,20 @@ MatchingLink::MatchingLink(IterType head, IterType last, const Route& Route,
 }
 
 void
-MatchingLink::InstallRoute(IterType head, IterType last, const Route& Route,
-               const VerbSet& VerbSet)
+MatchingLink::InstallRoute(IterType head, IterType last, const Route& route,
+                           const VerbSet& verbSet)
 {
   if (head == last) {
-    currentRoute = Maybe(Route, VerbSet);
+    currentRoute = Maybe(route, verbSet);
   } else {
     for (auto& ref: matchLinkVector) {
       if (ref.matches(head)) {
-        ref.InstallRoute(++head, last, Route, VerbSet);
+        ref.InstallRoute(++head, last, route, verbSet);
         return;
       }
     }
 
-    matchLinkVector.emplace_back(MatchingLink(head, last, Route, VerbSet));
+    matchLinkVector.emplace_back(MatchingLink(head, last, route, verbSet));
   }
 }
 

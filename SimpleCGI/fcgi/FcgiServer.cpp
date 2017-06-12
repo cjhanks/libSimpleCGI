@@ -11,7 +11,8 @@
 
 #include "Fcgi.hpp"
 #include "FcgiSocket.hpp"
-#include "FcgiHandler.hpp"
+#include "FcgiRequest.hpp"
+#include "FcgiResponse.hpp"
 #include "server/FcgiPreFork.hpp"
 #include "server/FcgiSynchronous.hpp"
 #include "server/FcgiThreaded.hpp"
@@ -38,7 +39,7 @@ MasterServer::MasterServer(ServerConfig config, int socket)
   }
 }
 
-void
+int
 MasterServer::ServeForever()
 {
   switch (serverConfig.concurrencyModel) {
@@ -52,6 +53,9 @@ MasterServer::ServeForever()
       prefork::eventLoop(this, serverConfig, rawSock);
       break;
   }
+
+  // FIXME
+  return 0;
 }
 
 void
@@ -89,6 +93,8 @@ MasterServer::ImplHandleInboundSocket(int sock)
       break;
 
     case RequestClass::MANAGEMENT:
+      LOG(ERROR) << "Received unhandled Management Request";
+      close(sock);
       break;
 
     default:

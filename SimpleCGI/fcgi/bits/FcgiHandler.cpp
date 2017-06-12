@@ -1,5 +1,6 @@
 #include "FcgiHandler.hpp"
-#include "../FcgiHandler.hpp"
+#include "../FcgiResponse.hpp"
+#include "../FcgiRequest.hpp"
 #include "SimpleCGI/common/Logging.hpp"
 
 

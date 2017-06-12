@@ -19,6 +19,7 @@ AddOption(
     '--mode',
     type=str,
     action='store',
+    default='release',
     help='''
 Use the production build options optimized for the platform
 ''')
@@ -39,55 +40,39 @@ and ${SEARCH_PATH}/lib to libs.
 ''')
 
 AddOption(
-    '--avx',
-    action='store_true',
-    default=False,
-    help='''
-Enable AVX instructions.
-''')
-
-AddOption(
-    '--profile-collect',
-    action='store_true',
-    default=False,
-    help='''
-Collect the profile arcs
-''')
-
-AddOption(
-    '--profile-use',
-    action='store_true',
-    default=False,
-    help='''
-Collect the profile arcs
-''')
-
-AddOption(
     '--wsgi',
     action='store_true',
     help='''
-Build the WSGI application server
+Build the WSGI components.
 ''')
 
+AddOption(
+    '--examples',
+    action='store_true',
+    help='''
+Build the examples.
+''')
 
 AddOption('--verbose', action='store_true', help='use verbose output')
 
+AddOption('--strict', action='store_true', help='warnings are errors')
 
-if GetOption('mode') == 'production':
+
+if GetOption('mode') == 'release':
     SConscript(
         './SConscript',
         variant_dir='build/release',
+        duplicate=1,
+    )
+elif GetOption('mode') == 'native':
+    SConscript(
+        './SConscript',
+        variant_dir='build/native',
         duplicate=1,
     )
 elif GetOption('mode') == 'debug':
     SConscript(
         './SConscript',
         variant_dir='build/debug',
-        duplicate=1,
-    )
-else:
-    SConscript(
-        './SConscript',
-        variant_dir='build/default',
         duplicate=1,
     )

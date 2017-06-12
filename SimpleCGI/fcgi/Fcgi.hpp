@@ -19,5 +19,7 @@ VersionToString(const FastWEB& version);
 
 #include "SimpleCGI/fcgi/FcgiServer.hpp"
 #include "SimpleCGI/fcgi/FcgiSocket.hpp"
+#include "SimpleCGI/fcgi/FcgiRequest.hpp"
+#include "SimpleCGI/fcgi/FcgiResponse.hpp"
 
 #endif //__FCGI_HPP

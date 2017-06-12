@@ -2,6 +2,7 @@
 #define SIMPLE_CGI_HPP_
 
 #include "SimpleCGI/fcgi/Fcgi.hpp"
+
 #if WITH_WSGI
 #include "SimpleCGI/wsgi/Wsgi.hpp"
 #endif

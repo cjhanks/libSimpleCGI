@@ -1,7 +1,6 @@
 #include "WsgiServer.hpp"
 
 #include <csignal>
-#include <mutex>
 
 #include "SimpleCGI/common/Logging.hpp"
 #include "WsgiReader.hpp"
@@ -10,7 +9,7 @@
 #include "PythonHelper.hpp"
 
 
-using namespace fcgi;
+namespace fcgi {
 using fcgi::bits::Decref;
 using fcgi::bits::AutoGIL;
 
@@ -20,6 +19,7 @@ WsgiApplication::WsgiApplication(Config config)
   , module(nullptr)
   , application(nullptr)
 {
+  LOG(INFO) << "Initialize";
   // 1.  Initialize the python library
   Py_Initialize();
   PyEval_InitThreads();
@@ -41,19 +41,20 @@ WsgiApplication::~WsgiApplication()
 void
 WsgiApplication::Initialize()
 {
-  LOG(INFO) << "Initialize: "
-            << config.module
-            << ":"
-            << config.app;
-
   AutoGIL gil;
 
   // 2.  Load the provided module
   PyObject* moduleName = PyUnicode_FromString(config.module.c_str());
+  if (moduleName == nullptr) {
+    PyErr_Print();
+    throw std::runtime_error("Failed to interpret module name");
+  }
+
   module = PyImport_Import(moduleName);
   Py_DECREF(moduleName);
   if (module == nullptr) {
     PyErr_Print();
+    LOG(ERROR) << "Failed to load: " << config.module;
     throw std::runtime_error("Failed to load module");
   }
 
@@ -109,8 +110,15 @@ WsgiHandler::operator()(PyObject* wsgiFunctor)
   PopulateEnvironmentCGI();
   PopulateEnvironmentWSGI();
 
+  assert(nullptr != wsgiFunctor);
+  assert(nullptr != environment);
+  assert(nullptr != callback);
+  //LOG::CHECK(nullptr != wsgiFunctor);
+  //LOG::CHECK(nullptr != environment);
+  //LOG::CHECK(nullptr != callback);
+
   Decref results =
-    PyObject_CallFunctionObjArgs(wsgiFunctor, environment, callback);
+    PyObject_CallFunctionObjArgs(wsgiFunctor, environment, callback, nullptr);
   if (results == nullptr)
     return false;
 
@@ -123,8 +131,10 @@ WsgiHandler::operator()(PyObject* wsgiFunctor)
       LOG(WARNING) << "UNKNOWN TYPE";
     }
 
+    fcgi::Ostream ostr = res.ToStream();
     Py_BEGIN_ALLOW_THREADS
-    res.write(PyBytes_AsString(elem), PyBytes_GET_SIZE(elem));
+    // FIXME ?
+    ostr.write(PyBytes_AsString(elem), PyBytes_GET_SIZE(elem));
     Py_END_ALLOW_THREADS
 
     Py_DECREF(elem);
@@ -151,7 +161,7 @@ void
 WsgiHandler::PopulateEnvironmentCGI()
 {
   AutoGIL gil;
-  for (const auto& pair: req.headers()) {
+  for (const auto& pair: req.Headers()) {
     AddToDict(
       environment,
       PyUnicode_FromString(pair.first.c_str()),
@@ -210,3 +220,4 @@ WsgiHandler::PopulateEnvironmentWSGI()
   );
 #endif
 }
+} // ns fcgi

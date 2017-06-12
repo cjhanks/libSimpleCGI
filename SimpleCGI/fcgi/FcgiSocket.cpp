@@ -288,9 +288,9 @@ size_t
 LogicalSocket::LogError(const uint8_t* data, size_t len)
 {
   Header header;
-  header.version     = Version::FCGI_1;
-  header.type      = HeaderType::STDERR;
-  header.requestId   = logicalRequestId;
+  header.version       = Version::FCGI_1;
+  header.type          = HeaderType::STDERR;
+  header.requestId     = logicalRequestId;
   header.ContentLength = static_cast<uint16_t>(len);
   header.paddingLength = static_cast<uint8_t>(0);
   header.SwitchEndian();

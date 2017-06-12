@@ -15,7 +15,7 @@ namespace fcgi {
 class HttpRequest;
 class HttpResponse;
 
-using Route = std::function<bool(HttpRequest&, HttpResponse&)>;
+using Route = std::function<int(HttpRequest&, HttpResponse&)>;
 
 enum class HttpVerb {
   UNDEFINED = 0,
@@ -30,27 +30,50 @@ enum class HttpVerb {
 std::string
 VerbToVerbString(const HttpVerb& Verb);
 
+inline std::string
+ToString(const HttpVerb& verb)
+{ return VerbToVerbString(verb); }
+
 HttpVerb
 VerbStringToVerb(const std::string& VerbStr);
 
 ////////////////////////////////////////////////////////////////////////////////
 
 class QueryArgument {
+  using QueryArgMap = std::map<std::string, std::string>;
+
 public:
-  static QueryArgument
-  fromRawString(const std::string& rawString);
+  using const_iterator = typename QueryArgMap::const_iterator;
 
   QueryArgument() = default;
 
   std::string
   GetArgument(const std::string& key,
-        const std::string& defaultValue = "") const;
+              const std::string& defaultValue = "") const;
+
+  /// {
+  /// Allows the structure to be iterated like a std::map
+  const_iterator
+  find(const std::string& key) const
+  { return queryArgs.find(key); }
+
+  const_iterator
+  begin() const
+  { return queryArgs.begin(); }
+
+  const_iterator
+  end() const
+  { return queryArgs.end(); }
+  /// }
 
 private:
-  using QueryArgMap = std::map<std::string, std::string>;
+
   friend class HttpRequest;
   QueryArgMap queryArgs;
   QueryArgument(const QueryArgMap& queryArgMap);
+
+  static QueryArgument
+  fromRawString(const std::string& rawString);
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -97,12 +120,12 @@ public:
   getRoot();
 
   MatchingLink(ElemType elem);
-  MatchingLink(IterType head, IterType last, const Route& Route,
-         const VerbSet& VerbSet);
+  MatchingLink(IterType head, IterType last, const Route& route,
+               const VerbSet& verbSet);
 
   void
-  InstallRoute(IterType head, IterType last, const Route& Route,
-         const VerbSet& VerbSet);
+  InstallRoute(IterType head, IterType last, const Route& route,
+               const VerbSet& verbSet);
 
   Maybe
   GetRoute();
@@ -130,20 +153,23 @@ public:
   MatchingRoot();
 
   void
-  InstallRoute(const std::string& RouteStr, const Route& Route);
+  InstallRoute(const std::string& routeStr, const Route& route);
 
   void
-  InstallRoute(const std::string& RouteStr, const Route& Route,
-         const VerbSet& VerbSet);
+  InstallRoute(const std::string& routeStr, const Route& route,
+               const VerbSet& verbSet);
 
-  Maybe
-  GetRoute(const std::string& RouteStr, MatchingArgs& args,
-       const HttpVerb& Verb);
 
   friend std::ostream& operator<<(std::ostream&, const MatchingRoot&);
 
 private:
   MatchingLink root;
+
+  friend class HttpRequest;
+  Maybe
+  GetRoute(const std::string& RouteStr, MatchingArgs& args,
+           const HttpVerb& Verb);
+
 };
 } // ns fcgi
 

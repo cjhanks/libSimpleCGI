@@ -10,10 +10,22 @@
 #include "FcgiIo.hpp"
 
 namespace fcgi {
+/// {
+class HttpRequest;
+class HttpResponse;
+/// }
+
+/// @{
+/// Call back typedefs.
 using ServeCallback = std::function<void()>;
-using ServeFallback = std::function<bool(HttpRequest&, HttpResponse&)>;
+using ServeFallback = Route;
+/// @}
 
 
+/// @class MasterServerException
+///
+/// This exception is thrown if the underlying socket is improperly
+/// configured for accepting connections.
 class MasterServerException : public std::runtime_error {
 public:
   MasterServerException(const std::string& msg)
@@ -21,7 +33,45 @@ public:
   {}
 };
 
+/// @struct ServerConfig
+///
+/// Structure used for configuring how the MasterServer is going to
+/// behave.
+///
 struct ServerConfig {
+  ///  @enum ConcurrencyModel
+  ///
+  ///  SYNCHRONOUS:
+  ///    Only a single request is handled at a time, and it is
+  ///    handled in the same thread that
+  ///    fcgi::MasterServer::ServeForever()` is called in.
+  ///
+  ///    When set:
+  ///      `config.childCount` is meaningless.
+  ///
+  ///  THREADED:
+  ///    Creates a pool of reusable `config.childCount` threads. Note that
+  ///    there is always `config.childCount + 1` threads.  This is because
+  ///    one thread is exclusively responsible for `accept` calls on the
+  ///    socket and may be used in various background tasks.
+  ///
+  ///    Threads are *not* detached from the main process.  Abort calls in
+  ///    any thread will terminate all threads.
+  ///
+  ///    Important:
+  ///      Child sockets are passed through a thread-safe blocking queue.
+  ///      This queue can theoretically overflow, it is expected that
+  ///      queuing is performed in the downstream FastCGI provider.
+  ///
+  ///  PREFORKED:
+  ///    There are `config.childCount + 1` processes.  The main process
+  ///    is responsible for accepting sockets and sending them to children
+  ///    in different processes.
+  ///
+  ///    Crashes in the main thread will cause an abort of all children,
+  ///    connections will not be drained.
+  ///
+  ///    Crashes in child threads will be restarted by main thread.
   enum class ConcurrencyModel {
     SYNCHRONOUS,
     THREADED,
@@ -29,12 +79,19 @@ struct ServerConfig {
   };
 
   ConcurrencyModel concurrencyModel;
+
+  /// Number of children which will be spawned.
   size_t childCount;
+
+  /// Called before a spawned worker is to accept its first request.
   ServeCallback callBack;
+
+  /// Called if no routes match an HTTP request.
   ServeFallback catchAll;
 
   ServerConfig()
-    : concurrencyModel(ConcurrencyModel::SYNCHRONOUS), childCount(1)
+    : concurrencyModel(ConcurrencyModel::SYNCHRONOUS)
+    , childCount(1)
   {}
 
   void
@@ -45,20 +102,39 @@ class MasterServer {
 public:
   MasterServer(ServerConfig config, int socket);
 
-  void
+  int
   ServeForever();
 
+
+  /// {
+  /// Installs a route to be handled by the server.
+  ///
+  /// routeStr should be something like -
+  ///   "/route/<arg1>/<arg2>/value"
+  ///
+  /// route is a function callback.
+  ///
+  /// verbSet is an optional set of HTTP verbs to be handled,
+  /// by default it will be all verbs.
+  void
+  InstallRoute(const std::string& routeStr, const Route& route)
+  { httpRoutes.InstallRoute(routeStr, route); }
+
+  void
+  InstallRoute(const std::string& routeStr, const Route& route,
+               const VerbSet& verbSet)
+  { httpRoutes.InstallRoute(routeStr, route, verbSet); }
+  /// }
+
+
+  /// This method is incidentally exposed due to design issues
+  /// in the event loops.  It should not be used unless you are
+  /// implementing your own event loop.
   void
   HandleInboundSocket(int sock);
 
   void
   DumpTo(std::ostream&) const;
-
-  fcgi::Assets&
-  Assets() { return serverAssets; }
-
-  MatchingRoot&
-  Routes() { return httpRoutes; }
 
 private:
   const ServerConfig serverConfig;
@@ -72,6 +148,16 @@ private:
   void
   ImplHandleInboundSocket(int sock);
 
+  // {
+  // TODO: Remove these from public interface
+  friend class HttpRequest;
+  friend class HttpResponse;
+  fcgi::Assets&
+  Assets() { return serverAssets; }
+
+  MatchingRoot&
+  Routes() { return httpRoutes; }
+  // }
 };
 } // ns fcgi
 

@@ -91,38 +91,22 @@ Env.Append(LIBPATH=lib_paths)
 
 # -- CONFIGURE OPTIMIZATION FLAGS ------------------------------------- #
 Env.Append(CPPDEFINES=GetOption('define'))
-Env.Append(CXXFLAGS=[
+Env.Append(CPPFLAGS=[
     '-Wall',
     '-Wextra',
     '-std=c++11',
-    '-Werror',
 ])
-
 Env.Append(CPPFLAGS=[
     '-pthread',
     '-pipe',
 ])
 
-Env.Append(LINKFLAGS=[
-    '-pthread'
-])
-
-if GetOption('mode') == 'production':
-    Env.Append(CXXFLAGS=[
-        '-O3',
+if GetOption('strict'):
+    Env.Append(CPPFLAGS=[
+        '-Werror',
     ])
 
-    if GetOption('avx'):
-        Env.Append(CXXFLAGS=[
-            '-march=corei7-avx',
-            '-mtune=corei7-avx',
-        ])
-    else:
-        Env.Append(CXXFLAGS=[
-            '-march=corei7',
-            '-mtune=corei7',
-        ])
-
+if GetOption('mode') in ('native', 'release'):
     Env.Append(LINKFLAGS=[
         '-flto',
     ])
@@ -130,10 +114,24 @@ if GetOption('mode') == 'production':
         'NDEBUG',
     ])
 
-elif GetOption('mode') == 'debug':
-    #Env.Append(CPPDEFINES=[
-    #    'D_GLIBCXX_DEBUG=',
-    #])
+if GetOption('mode') in ('native',):
+    Env.Append(CXXFLAGS=[
+        '-O3',
+        '-march=native',
+        '-mtune=native',
+    ])
+elif GetOption('mode') in ('release',):
+    Env.Append(CXXFLAGS=[
+        '-O3',
+    ])
+else:
+    Env.Append(CXXFLAGS=[
+        '-g',
+        '-O0',
+    ])
+
+# - Sanitizers
+if GetOption('mode') in ('debug',):
     sanitization = [
         'address',
         'undefined',
@@ -149,18 +147,10 @@ elif GetOption('mode') == 'debug':
         'ubsan',
     ])
 
-    Env.Append(CXXFLAGS=[
-        '-g',
-        '-mtune=generic',
-        '-O1',
-    ])
 
-else:
-    Env.Append(CXXFLAGS=[
-        '-g',
-        '-O2',
-        '-mtune=corei7'
-    ])
+Env.Append(LINKFLAGS=[
+    '-pthread'
+])
 
 # -- CONFIGURE LINKER FLAGS ------------------------------------------- #
 libs = [
@@ -189,11 +179,14 @@ Env = Env.Clone()
 BinOutput = Dir('#bin').abspath
 
 libSimpleCGI = \
-        Env.SConscript('SimpleCGI/SConscript', exports={'Env': Env})
+        Env.SConscript('SimpleCGI/SConscript',
+                       exports={'Env': Env})
 
 Env = Env.Clone()
 Env.Prepend(LIBS=[libSimpleCGI])
 
 # -- BUILD OPTIONAL APPLICATIONS -------------------------------------- #
 
-Env.SConscript('application/SConscript', exports={'Env':Env})
+if GetOption('examples'):
+    Env.SConscript('examples/SConscript',
+                   exports={'Env':Env})
