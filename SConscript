@@ -168,9 +168,6 @@ if GetOption('wsgi'):
     Env.Append(CPPDEFINES=[
         'WITH_WSGI=1'
     ])
-    Env.Append(LIBS=[
-        'boost_program_options',
-    ])
     Env.ParseConfig('python3-config --includes --ldflags')
 
 
