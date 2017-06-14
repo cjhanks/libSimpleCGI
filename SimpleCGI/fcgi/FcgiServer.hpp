@@ -8,6 +8,8 @@
 #include "FcgiHttp.hpp"
 #include "FcgiHandler.hpp"
 #include "FcgiIo.hpp"
+#include "FcgiRequest.hpp"
+#include "SimpleCGI/common/Logging.hpp"
 
 namespace fcgi {
 /// {

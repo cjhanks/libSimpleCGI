@@ -1,4 +1,3 @@
-
 #include "FcgiServer.hpp"
 
 #include <sys/types.h>
