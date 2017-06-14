@@ -10,6 +10,14 @@ namespace {
 using Request = fcgi::HttpRequest;
 using Response = fcgi::HttpResponse;
 
+int
+HelloWorld(Request& request, Response& response)
+{
+  response.SetResponse(fcgi::HttpHeader(200, "text/plain"));
+  std::string name = request.GetRouteArgument("name");
+  response.ToStream() << "Hello C++ " << name;
+  return 0;
+}
 
 //
 // A simple health check GET request intended to simply respond "OK"
@@ -104,6 +112,12 @@ QueryArgs(Request& request, Response& response)
 void
 Install(fcgi::MasterServer& server)
 {
+  server.InstallRoute(
+    "/hello/<name>/cpp",
+    HelloWorld,
+    {fcgi::HttpVerb::GET}
+  );
+
   server.InstallRoute(
     "/example1/healthCheck",
     HealthCheck,

@@ -1,9 +1,10 @@
 # vim: ts=2 sw=2 et ai tw=80
-FROM  ubuntu:16.04
+FROM    ubuntu:16.04
 
 RUN     apt-get update
 RUN     apt-get install -y \
           gcc \
+          g++ \
           clang \
           pkg-config \
           scons \
@@ -11,4 +12,4 @@ RUN     apt-get install -y \
 
 COPY    ./ /build
 WORKDIR /build
-RUN     ./testbuilds.sh
+RUN     ./docker/combanitorial-builds.sh

@@ -23,7 +23,6 @@ main(void)
   //  FATAL
   //  NONE
   fcgi::LOG::SetLogLevel(fcgi::WARNING);
-  //fcgi::LOG::SetLogLevel(fcgi::DEBUG);
 
   // {
   // Create the server configuration
@@ -63,9 +62,8 @@ main(void)
   //    Crashes in child threads will be restarted by main thread.
   //
   config.concurrencyModel =
-      //fcgi::ServerConfig::ConcurrencyModel::SYNCHRONOUS;
-      fcgi::ServerConfig::ConcurrencyModel::PREFORKED;
-  config.childCount = 4;
+      fcgi::ServerConfig::ConcurrencyModel::SYNCHRONOUS;
+  config.childCount = 1;
   // }
 
   // {

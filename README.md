@@ -11,26 +11,48 @@ include a WSGI server for hosting Python3 applications
 
 ## Why libSimpleCGI?
 
-  If you have a bunch of code already written in C++ which would be
-useful for a web server, there are only a few practical integration
-strategies.
+  In my experience - a WSGI Python application (Flask/Bottle/...) fulfills the
+majority of my web-server performance needs.
 
-  1.  Use a full-fledged webserver in your codebase.  There are a few
-      relatively good ones... unfortunately all of the good ones are
-      fairly heavy in dependencies.
-  2.  Embed your C++ into a higher level language (such as Python) by
-      making calls through an FFI.
+However, there are cases where using C++ for a given route simply makes
+life easier.
 
-libSimpleCGI does not have all of great features of a fully featured
-webserver such as HTTP/2 and it is not an event-based framework.
-Rather, it relies on NGINX to provide a lot of the functionality built
-into webservers.  If all you need is reasonably performant server
-without the dependency headache's, it might work for you.
+  - The route will need to parse/interpret a byte stream with non-trivial
+    semantics.
+    - Ie: Conditional branching on structured types.
+    - Ie: Converting marshalled data to a different consumable form.
+  - The route will need to execute a significant number of mathematical
+    operations
+    - Ie: Applying transformations on numerical data.
+    - Ie: Statistically summarizing a large stored data.
+  - C++ code already exists for a specific operation which would required a
+    rewrite/porting to Python.
 
-Presently support of integrating Python3 WSGI applications is under development.
+Historically I solved these problems in the following ways:
 
+  - Create a C++ foreign-function-interface via one of the various wrappers;
+    SWIG, Boost.Python, Cython, etc.
+  - Create a C library which exposes a Ctypes/CFFI interface to my C++ library.
+  - Create a Python C-Extension which directly uses the `PyObject*` type
+    system.
+
+Each strategy works, though they carry different baggage.
+
+libSimpleCGI allows you to create a statically linked C++ program capable of
+running your C++ routes and your WSGI routes in the same process(1).
+
+
+(1) It is expected that `libpython3.so` will most likely be a dynamic link.
 
 # Quickstart
+
+## Tested Platforms
+
+| Platform    | GCC | CLANG
+|:------------|:----|:----------------------------------------------------------
+| Ubuntu 14.04| NO  | MAYBE (needs newer version than default libstdc++)
+| Ubuntu 16.04| YES | YES
+| Ubuntu 17.04| YES | NO
 
 ## Build
 
@@ -48,6 +70,9 @@ Dependencies:
   # To build the examples
   $> scons --examples
 
+  # To build the WSGI library and associated examples.
+  $> scons --wsgi
+
   # Modes:
   #   release: Generic binary which is portable independent of
   #            CPU architecture [DEFAULT]
@@ -61,6 +86,22 @@ Dependencies:
   export CXX=clang++
   $> scons ...
 ```
+
+## Install
+
+```bash
+
+  # FROM THE ROOT OF THE DIRECTORY
+  $> scons \
+       --mode={native|release} \
+       --install-prefix /path/to/install \
+       [--wsgi]
+       
+  $> tree /path/to/install
+```
+
+This will install all of the headers into:
+
 
 ## Hello 'World'
 

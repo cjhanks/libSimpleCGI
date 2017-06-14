@@ -3,8 +3,8 @@ import bottle
 app = bottle.Bottle()
 
 
-@app.route('/python/hello/<name>', method=['GET'])
+@app.route('/hello/<name>/python', method=['GET'])
 def hello(name):
-    return 'Hello {}'.format(name)
+    return 'Hello Python {}'.format(name)
 
 print('Python loaded')
