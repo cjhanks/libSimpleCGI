@@ -34,16 +34,16 @@ libSimpleCGI = \
     source=libSimpleCGISources
   )
 
+from os.path import dirname
 if GetOption('install_prefix'):
     for header in libSimpleCGIHeaders:
         path = join(GetOption('install_prefix'),
                     'include',
                     'SimpleCGI',
-                    str(header))
-        Env.Install(path, header)
+                    dirname(str(header)))
+        Env.Alias('install', Env.Install(path, header))
 
-    path = join(GetOption('install_prefix'),
-                'lib')
-    Env.Install(path, libSimpleCGI)
+    path = join(GetOption('install_prefix'), 'lib')
+    Env.Alias('install', Env.Install(path, libSimpleCGI))
 
 Return('libSimpleCGI')

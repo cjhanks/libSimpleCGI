@@ -92,15 +92,21 @@ Dependencies:
 ```bash
 
   # FROM THE ROOT OF THE DIRECTORY
-  $> scons \
+  $> scons install \
        --mode={native|release} \
        --install-prefix /path/to/install \
        [--wsgi]
        
   $> tree /path/to/install
-```
+  ├── include
+  │   └── SimpleCGI
+  │       ├── ... 
+  │       │   └── ... 
+  │       └── SimpleCGI.hpp
+  └── lib 
+      └── libSimpleCGI.a
 
-This will install all of the headers into:
+```
 
 
 ## Hello 'World'
