@@ -10,6 +10,10 @@ namespace {
 using Request = fcgi::HttpRequest;
 using Response = fcgi::HttpResponse;
 
+//
+// A simple HelloWorld route which mimics that found in the
+// simplecgi_example.py route.
+//
 int
 HelloWorld(Request& request, Response& response)
 {
