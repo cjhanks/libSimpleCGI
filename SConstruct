@@ -8,7 +8,7 @@ from itertools    import chain
 
 
 AddOption(
-    '--install-bin-prefix',
+    '--install-prefix',
     type=str,
     action='store',
     help='''
