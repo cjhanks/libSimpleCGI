@@ -1,12 +1,16 @@
-<!-- vim: ts=2 sw=2 ai tw=72 et
-  -->
-
 # Brief
 
-  libSimpleCGI is a C++ library targeting Linux/Unix systems
-implementing most of the FastCGI protocol.  It will soon optionally
-include a WSGI server for hosting Python3 applications
-(such as Flask/Bottle).
+  libSimpleCGI is a statically linkable library which implements the
+FastCGI protocol and optionally the WSGI application specification.
+
+  The primary objective is to make development of web-services in the
+C++ language straight forward to *write* and *deploy*.  The secondary
+objective is to make the integration of C++ and Python web services
+possible.
+
+## Status
+
+  Alpha quality and soliciting feedback.
 
 
 ## Why libSimpleCGI?
@@ -96,14 +100,14 @@ Dependencies:
        --mode={native|release} \
        --install-prefix /path/to/install \
        [--wsgi]
-       
+
   $> tree /path/to/install
   ├── include
   │   └── SimpleCGI
-  │       ├── ... 
-  │       │   └── ... 
+  │       ├── ...
+  │       │   └── ...
   │       └── SimpleCGI.hpp
-  └── lib 
+  └── lib
       └── libSimpleCGI.a
 
 ```
