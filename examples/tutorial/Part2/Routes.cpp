@@ -15,7 +15,6 @@ namespace {
 using Request = fcgi::HttpRequest;
 using Response = fcgi::HttpResponse;
 
-
 //
 // Simply echoes whatever was POST/PUT-ed from the user.
 //

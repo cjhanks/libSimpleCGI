@@ -10,7 +10,7 @@ using std::istreambuf_iterator;
 using std::string;
 
 namespace fcgi {
-FileAsset::FileAsset(const string& path, struct stat fstat, 
+FileAsset::FileAsset(const string& path, struct stat fstat,
            CacheMode cacheMode)
   : filePath(path), fileStat(fstat), cacheMode(cacheMode)
 {
@@ -38,20 +38,20 @@ FileAsset::operator string()
 
 string
 FileAsset::LoadFromFile()
-{   
+{
   ifstream ifs(filePath);
   return string((istreambuf_iterator<char>(ifs)),
-          (istreambuf_iterator<char>()));
+                (istreambuf_iterator<char>()));
 }
 
 void
 FileAsset::DumpTo(std::ostream& strm) const
 {
-  strm << "  AbsPath: "  << filePath     << std::endl
-     << "  Cached:  "  << cacheData.size() << std::endl 
-     << "  Size:  "  << fileStat.st_size << std::endl;
+  strm << "  AbsPath: " << filePath         << std::endl
+       << "  Cached:  " << cacheData.size() << std::endl
+       << "  Size:  "   << fileStat.st_size << std::endl;
 }
-  
+
 void
 Assets::AddSearchPath(const string& path, CacheMode cacheMode)
 {
@@ -59,16 +59,16 @@ Assets::AddSearchPath(const string& path, CacheMode cacheMode)
 }
 
 void
-Assets::ImplAddSearchPath(const string& origin, const string& path, 
+Assets::ImplAddSearchPath(const string& origin, const string& path,
               CacheMode cacheMode)
 {
   struct dirent** nameList;
   int n = scandir(path.c_str(), &nameList, nullptr, alphasort);
 
   if (n < 0) {
-    LOG(WARNING) << "Unable to observe directory: " << path;
+    LOG(ERROR) << "Unable to observe directory: " << path;
     return;
-  } 
+  }
 
   for (ssize_t i = 0; i < n; ++i) {
     string pthName(nameList[i]->d_name);
@@ -82,7 +82,7 @@ Assets::ImplAddSearchPath(const string& origin, const string& path,
     if (stat(newPath.c_str(), &fstat) < 0) {
       continue;
     }
-    
+
     char*  memPath = realpath(newPath.c_str(), nullptr);
     if (memPath == nullptr) {
       continue;
@@ -100,14 +100,13 @@ Assets::ImplAddSearchPath(const string& origin, const string& path,
 
   }
 
-  for (ssize_t i = 0; i < n; ++i) {
+  for (ssize_t i = 0; i < n; ++i)
     free(nameList[i]);
-  }
 
   free(nameList);
 }
 
-void 
+void
 Assets::DumpTo(std::ostream& strm) const
 {
   strm << string(80, '=') << std::endl;

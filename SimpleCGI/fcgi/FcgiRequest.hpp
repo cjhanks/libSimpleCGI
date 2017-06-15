@@ -65,14 +65,8 @@ public:
   //
   // assert(request.GetRouteArgument("route") == "example");
   std::string
-  GetRouteArgument(const std::string& key, std::string defaultValue = "")
-  {
-    auto iter = matchingArgs.find(key);
-    if (iter == matchingArgs.end())
-      return defaultValue;
-    else
-      return iter->second;
-  }
+  GetRouteArgument(const std::string& key, std::string defaultValue = "");
+
   /// @}
 
   // NOTE: Currently this is not a "cheap" function, as it performs string

@@ -31,13 +31,14 @@ public:
 };
 
 
-/**
- */
+/// Creates a UNIX domain socket listening on `path`.
 int
 DomainSocket(const std::string& path);
 
+/// Creates a TCP socket listening on `ip:port`
 int
 TcpSocket(const std::string& ip, int port);
+
 
 class PhysicalSocket {
 public:

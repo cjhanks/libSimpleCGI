@@ -9,6 +9,9 @@
 
 
 namespace fcgi {
+// The specification technically states that 64kb of buffer is permitted.
+// However, NGINX appears to disagree.  So let's agree with NGINX and say
+// it's 4kb.
 #if 0
 static constexpr size_t MaximumContentDataLen = (1 << 16);
 #else
@@ -39,16 +42,16 @@ enum class RequestRole : std::uint16_t {
 enum class HeaderType : std::uint8_t {
   BEGIN_REQUEST     = 1,
   ABORT_REQUEST     = 2,
-  END_REQUEST     = 3,
-  PARAMS        = 4,
-  STDIN         = 5,
-  STDOUT        = 6,
-  STDERR        = 7,
-  DATA        = 8,
-  GET_VALUES      = 9,
-  GET_VALUES_RESULT   = 10,
-  UNKNOWN_TYPE    = 11,
-  MAXTYPE       = UNKNOWN_TYPE
+  END_REQUEST       = 3,
+  PARAMS            = 4,
+  STDIN             = 5,
+  STDOUT            = 6,
+  STDERR            = 7,
+  DATA              = 8,
+  GET_VALUES        = 9,
+  GET_VALUES_RESULT = 10,
+  UNKNOWN_TYPE      = 11,
+  MAXTYPE           = UNKNOWN_TYPE
 };
 
 using RequestID = std::uint16_t;
@@ -56,10 +59,10 @@ using RequestID = std::uint16_t;
 struct Header {
   Header();
 
-  Version     version;
+  Version       version;
   HeaderType    type;
   RequestID     requestId;
-  std::uint16_t   ContentLength;
+  std::uint16_t ContentLength;
   std::uint8_t  paddingLength;
   std::uint8_t  reserved;
 
@@ -74,12 +77,11 @@ struct Header {
 
 
 static constexpr std::size_t HeaderLen = sizeof(Header);
-static_assert(HeaderLen == 8
-      , "Incorrectly defined header");
+static_assert(HeaderLen == 8, "Incorrectly defined header");
 
 bool
 ReadIntoKeyValueMap(const std::uint8_t* data, size_t len,
-          KeyValueMap& keyValueMap);
+                    KeyValueMap& keyValueMap);
 
 ////////////////////////////////////////////////////////////////////////////////
 // MESSAGES
@@ -98,17 +100,17 @@ struct MessageBeginRequest {
 } __attribute__((packed));
 
 enum class ProtocolStatus : std::uint8_t {
-  REQUEST_COMPLETE  = 1,
-  CANT_MPX_CONN     = 2,
-  OVERLOADED      = 3,
-  UNKNOWN_ROLE    = 4
+  REQUEST_COMPLETE = 1,
+  CANT_MPX_CONN    = 2,
+  OVERLOADED       = 3,
+  UNKNOWN_ROLE     = 4
 };
 
 struct MessageEndRequest {
   MessageEndRequest();
 
-  std::uint32_t     appStatus;
-  ProtocolStatus    protocolStatus;
+  std::uint32_t   appStatus;
+  ProtocolStatus  protocolStatus;
   std::uint8_t    reserved[3];
 
   void
@@ -118,8 +120,8 @@ struct MessageEndRequest {
 struct MessageUnknown {
 } __attribute__((packed));
 
-static_assert(sizeof(MessageEndRequest) == 8
-      , "Invalid End request size");
+static_assert(sizeof(MessageEndRequest) == 8,
+             "Invalid End request size");
 
 } // ns fcgi
 

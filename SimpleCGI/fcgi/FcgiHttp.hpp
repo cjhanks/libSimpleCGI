@@ -27,6 +27,8 @@ enum class HttpVerb {
   DELETE
 };
 
+/// DEPRECATED
+/// XXX: This should be removed and replaced by the below `ToString(...)`.
 std::string
 VerbToVerbString(const HttpVerb& Verb);
 
@@ -52,7 +54,7 @@ public:
               const std::string& defaultValue = "") const;
 
   /// {
-  /// Allows the structure to be iterated like a std::map
+  /// Allows the structure to be treated like a std::map.
   const_iterator
   find(const std::string& key) const
   { return queryArgs.find(key); }
@@ -67,7 +69,6 @@ public:
   /// }
 
 private:
-
   friend class HttpRequest;
   QueryArgMap queryArgs;
   QueryArgument(const QueryArgMap& queryArgMap);
@@ -89,15 +90,15 @@ public:
 
   template <typename... _Args>
   auto
-  call(_Args&&... args) -> decltype(((Route*)(0))->operator()(args...)) {
-    return matchLink(args...);
-  }
+  call(_Args&&... args) -> decltype(((Route*)(0))->operator()(args...))
+  { return matchLink(args...); }
 
   bool
   MatchesVerb(const HttpVerb& Verb);
 
   void
   DumpTo(const std::string& prefix, std::ostream&) const;
+
 private:
   bool isMatchLink;
   Route matchLink;
