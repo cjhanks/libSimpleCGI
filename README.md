@@ -86,7 +86,7 @@ Dependencies:
 
 ## Hello 'World'
 
-Using the NGINX config found in `examples/tutorial/README.md` sets up a minimal
+Using the NGINX config found in `examples/README.md` sets up a minimal
 SimpleCGI application which can be queried:
 
     $> curl localhost:8000/hello/world
