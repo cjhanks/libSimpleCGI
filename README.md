@@ -1,3 +1,4 @@
+
 # Brief
 
   libSimpleCGI is a statically linkable library which implements the
