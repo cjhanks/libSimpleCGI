@@ -1,0 +1,20 @@
+# vim: ts=2 sw=2 et ai tw=72
+
+sudo: required
+language: cpp
+
+matrix:
+  include:
+    - env: DISTRO_VERSION=ubuntu_16_04
+      services:
+        - docker
+    - env: DISTRO_VERSION=ubuntu_17_04
+      services:
+        - docker
+    - env: DISTRO_VERSION=ubuntu_17_10
+      services:
+        - docker
+
+script:
+  - docker build -t ${DISTRO_VERSION} -f docker/Docker.${DISTRO_VERSION} ./
+  - docker run --rm -i -t ${DISTRO_VERSION} ./docker/combanitorial-builds.sh
