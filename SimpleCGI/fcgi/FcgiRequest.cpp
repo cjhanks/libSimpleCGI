@@ -96,6 +96,17 @@ HttpRequest::GetHeader(string key, const string& defaultValue) const
   }
 }
 
+std::string
+HttpRequest::GetRouteArgument(const std::string& key, std::string defaultValue )
+{
+  auto iter = matchingArgs.find(key);
+  if (iter == matchingArgs.end())
+    return defaultValue;
+  else
+    return iter->second;
+}
+
+
 size_t
 HttpRequest::ContentLength() const
 {

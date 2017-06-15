@@ -104,9 +104,10 @@ class MasterServer {
 public:
   MasterServer(ServerConfig config, int socket);
 
+  /// Enter the event loop and begin serving until signals are raised
+  /// against the process.
   int
   ServeForever();
-
 
   /// {
   /// Installs a route to be handled by the server.
@@ -151,7 +152,7 @@ private:
   ImplHandleInboundSocket(int sock);
 
   // {
-  // TODO: Remove these from public interface
+  // Methods needed by reqests and responses.
   friend class HttpRequest;
   friend class HttpResponse;
   fcgi::Assets&

@@ -182,6 +182,7 @@ LogicalSocket::ConstructLogicalSocket(PhysicalSocket* physicalSocket)
     header.SwitchEndian();
   }
 
+  // FIXME
   if (header.IsManagementRecord()) {
     assert(0 == 1);
     return nullptr;
@@ -209,10 +210,11 @@ LogicalSocket::~LogicalSocket()
 size_t
 LogicalSocket::RecvDataForHeader(const Header& header, uint8_t* data)
 {
-  ssize_t recvData = socket->recvVec(data,
-                     header.ContentLength,
-                     padBuffer.data(),
-                     header.paddingLength);
+  ssize_t recvData =
+      socket->recvVec(data,
+                      header.ContentLength,
+                      padBuffer.data(),
+                      header.paddingLength);
   if (recvData <= 0) {
     return 0;
   }
@@ -275,7 +277,7 @@ LogicalSocket::SendData(const uint8_t* data, size_t len)
     ::memcpy(dataBuffer.data() + currentWriteHead, data, writeLen);
     currentWriteHead += writeLen;
     return StdoutFlush(dataBuffer.data(), currentWriteHead)
-       + SendData(data + writeLen, len - writeLen);
+         + SendData(data + writeLen, len - writeLen);
   } else {
     ::memcpy(dataBuffer.data() + currentWriteHead, data, len);
     currentWriteHead += len;
@@ -312,18 +314,20 @@ LogicalSocket::ExitCode(ProtocolStatus status)
   endReq.SwitchEndian();
 
   Header header;
-  header.version     = Version::FCGI_1,
-  header.type      = HeaderType::END_REQUEST;
-  header.requestId   = logicalRequestId;
+  header.version       = Version::FCGI_1,
+  header.type          = HeaderType::END_REQUEST;
+  header.requestId     = logicalRequestId;
   header.ContentLength = static_cast<uint16_t>(sizeof(endReq));
   header.paddingLength = static_cast<uint8_t>(0);
-  header.reserved    = 0;
+  header.reserved      = 0;
   header.SwitchEndian();
 
-  ssize_t size = socket->SendVec(&header, sizeof(header),
-                   &endReq, sizeof(endReq));
+  ssize_t size =
+      socket->SendVec(&header, sizeof(header),
+                      &endReq, sizeof(endReq));
   assert(size == sizeof(header) + sizeof(endReq));
   (void) size;
+  // FIXME ???
 }
 
 size_t
@@ -331,12 +335,12 @@ LogicalSocket::StdoutFlush(uint8_t* data, size_t len)
 {
   assert(len == currentWriteHead);
   Header header;
-  header.version     = Version::FCGI_1;
-  header.type      = HeaderType::STDOUT;
-  header.requestId   = logicalRequestId;
+  header.version       = Version::FCGI_1;
+  header.type          = HeaderType::STDOUT;
+  header.requestId     = logicalRequestId;
   header.ContentLength = static_cast<uint16_t>(len);
   header.paddingLength = static_cast<uint8_t>(0);
-  header.reserved    = {0};
+  header.reserved      = {0};
   header.SwitchEndian();
 
   size_t flushSize = socket->SendVec(&header, sizeof(header), data, len);
@@ -361,6 +365,7 @@ LogicalSocket::GetHeader()
   } else {
     header.SwitchEndian();
   }
+
   logicalLastHeader = header;
   return header;
 }

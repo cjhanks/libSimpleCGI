@@ -16,15 +16,15 @@ std::streambuf::int_type
 HttpRequestStreamBuf::underflow()
 {
   if (gptr() == egptr()) {
-  size_t size = request->recv(buffer.data(), buffer.size());
-  setg(buffer.data(),
-     buffer.data(),
-     buffer.data() + size);
+    size_t size = request->recv(buffer.data(), buffer.size());
+    setg(buffer.data(),
+         buffer.data(),
+         buffer.data() + size);
   }
 
   return gptr() == egptr()
-     ? std::char_traits<char>::eof()
-     : std::char_traits<char>::to_int_type(*gptr());
+       ? std::char_traits<char>::eof()
+       : std::char_traits<char>::to_int_type(*gptr());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -45,14 +45,15 @@ HttpResponseStreamBuf::overflow(std::streambuf::int_type ch)
 {
   auto write = pptr() - pbase();
   if (write) {
-  int written = response->write(buffer.data(), write);
-  if (write != written)
-    return traits_type::eof();
+    int written = response->write(buffer.data(), write);
+    if (write != written)
+      return traits_type::eof();
   }
 
   setp(buffer.data(), buffer.data() + buffer.size());
+
   if (!traits_type::eq_int_type(ch, traits_type::eof()))
-  sputc(ch);
+    sputc(ch);
 
   return traits_type::not_eof(ch);
 }
@@ -61,11 +62,11 @@ int
 HttpResponseStreamBuf::sync()
 {
   auto result = overflow(traits_type::eof());
-  // TODO:
+  // TODO: Maybe?
   //response->flush();
   return traits_type::eq_int_type(result, traits_type::eof())
-     ? -1
-     : +0;
+       ? -1
+       : +0;
 }
 } // ns bits
 } // ns fcgi

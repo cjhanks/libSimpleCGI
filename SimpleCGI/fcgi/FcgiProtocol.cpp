@@ -65,13 +65,10 @@ headerTypeToString(HeaderType t)
 }
 } // ns
 
-/**
- * This function assumes input data is sane according to the FCGI protocol, it
- * can segfault onn bad input
- *
- * @return true
- *    If data input perfectly aligned with the key-value pairs.
- */
+// This function assumes input data is sane according to the FCGI protocol, it
+// can segfault onn bad input
+//
+// @return true If data input perfectly aligned with the key-value pairs.
 bool
 ReadIntoKeyValueMap(const uint8_t* data, size_t len,
           KeyValueMap& keyValueMap)
@@ -82,6 +79,8 @@ ReadIntoKeyValueMap(const uint8_t* data, size_t len,
   const uint8_t* end   = data + len;
 
   auto parseLength = [&]() -> uint32_t {
+    // Numbers lengths are variable in FastCGI, so determine which parsing
+    // logic is appropriate.
     if (1 != (*begin) >> 7) {
       assert(begin + 1 <= end);
       return *(begin++);
@@ -89,9 +88,9 @@ ReadIntoKeyValueMap(const uint8_t* data, size_t len,
       assert(begin + 4 <= end);
       uint32_t elem(0);
       elem += (*(begin++) & 0x7f) << 24;
-      elem += (*(begin++)     ) << 16;
-      elem += (*(begin++)     ) << 8;
-      elem += (*(begin++)     ) << 0;
+      elem += (*(begin++)       ) << 16;
+      elem += (*(begin++)       ) << 8;
+      elem += (*(begin++)       ) << 0;
       return elem;
     }
   };
@@ -103,9 +102,9 @@ ReadIntoKeyValueMap(const uint8_t* data, size_t len,
 
     assert(begin + keyLength + valLength <= end);
     const string key(begin,
-             begin + keyLength);
+                     begin + keyLength);
     const string val(begin + keyLength,
-             begin + keyLength + valLength);
+                     begin + keyLength + valLength);
 
     keyValueMap[key] = val;
     begin += (keyLength + valLength);
@@ -117,6 +116,7 @@ ReadIntoKeyValueMap(const uint8_t* data, size_t len,
 ////////////////////////////////////////////////////////////////////////////////
 Header::Header()
 {
+  // FIXME: Technically memset is a pure function and can be elided.
   memset(this, 0, sizeof(*this));
 }
 
@@ -129,7 +129,7 @@ Header::IsManagementRecord() const
 void
 Header::SwitchEndian()
 {
-  requestId   = endianSwitch(requestId);
+  requestId = endianSwitch(requestId);
   ContentLength = endianSwitch(ContentLength);
 }
 
