@@ -13,6 +13,11 @@ possible.
 
   Alpha quality and soliciting feedback.
 
+| Branch | Status
+|:-------|:---------------------------------------------------------------------
+| next   | ![next](https://api.travis-ci.org/cjhanks/libSimpleCGI.svg?branch=next)
+| master | ![master](https://api.travis-ci.org/cjhanks/libSimpleCGI.svg?branch=master)
+
 
 # Quickstart
 
