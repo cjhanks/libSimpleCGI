@@ -23,11 +23,12 @@ possible.
 
 ## Tested Platforms
 
-| Platform    | GCC | CLANG
-|:------------|:----|:----------------------------------------------------------
-| Ubuntu 14.04| NO  | MAYBE (needs newer version than default libstdc++)
-| Ubuntu 16.04| YES | YES
-| Ubuntu 17.04| YES | UNKNOWN
+| Platform     | GCC | CLANG
+|:-------------|:----|:----------------------------------------------------------
+| Ubuntu 14.04 | NO  | MAYBE (needs newer version than default libstdc++)
+| Ubuntu 16.04 | YES | YES
+| Ubuntu 17.04 | YES | YES
+| Ubuntu 17.10 | YES | YES
 
 ## Build
 
