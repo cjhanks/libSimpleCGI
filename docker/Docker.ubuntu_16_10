@@ -1,0 +1,13 @@
+# vim: ts=2 sw=2 et ai tw=80
+FROM    ubuntu:16.10
+RUN     apt-get update
+RUN     apt-get install -y \
+          gcc \
+          g++ \
+          clang \
+          pkg-config \
+          scons \
+          python3-dev
+
+COPY    ./ /build
+WORKDIR /build

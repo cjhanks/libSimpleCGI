@@ -8,6 +8,9 @@ matrix:
     - env: DISTRO_VERSION=ubuntu_16_04
       services:
         - docker
+    - env: DISTRO_VERSION=ubuntu_16_10
+      services:
+        - docker
     - env: DISTRO_VERSION=ubuntu_17_04
       services:
         - docker
