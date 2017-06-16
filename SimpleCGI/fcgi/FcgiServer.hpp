@@ -9,6 +9,7 @@
 #include "FcgiHandler.hpp"
 #include "FcgiIo.hpp"
 #include "FcgiRequest.hpp"
+#include "Routing.hpp"
 #include "SimpleCGI/common/Logging.hpp"
 
 namespace fcgi {

@@ -6,6 +6,7 @@
 
 #include "FcgiHttp.hpp"
 #include "FcgiProtocol.hpp"
+#include "Routing.hpp"
 
 
 namespace fcgi {
