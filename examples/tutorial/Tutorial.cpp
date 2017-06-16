@@ -23,6 +23,7 @@ main(void)
   //  FATAL
   //  NONE
   fcgi::LOG::SetLogLevel(fcgi::WARNING);
+  //fcgi::LOG::SetLogLevel(fcgi::DEBUG);
 
   // {
   // Create the server configuration

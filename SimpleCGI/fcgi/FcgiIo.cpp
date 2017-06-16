@@ -45,14 +45,6 @@ FileAsset::LoadFromFile()
 }
 
 void
-FileAsset::DumpTo(std::ostream& strm) const
-{
-  strm << "  AbsPath: " << filePath         << std::endl
-       << "  Cached:  " << cacheData.size() << std::endl
-       << "  Size:  "   << fileStat.st_size << std::endl;
-}
-
-void
 Assets::AddSearchPath(const string& path, CacheMode cacheMode)
 {
   ImplAddSearchPath(path, path, cacheMode);
@@ -104,17 +96,5 @@ Assets::ImplAddSearchPath(const string& origin, const string& path,
     free(nameList[i]);
 
   free(nameList);
-}
-
-void
-Assets::DumpTo(std::ostream& strm) const
-{
-  strm << string(80, '=') << std::endl;
-  strm << "File Assets:" << std::endl;
-  for (auto& ref: fileAssets) {
-    strm << string(80, '-') << std::endl;
-    strm << ref.first << std::endl;
-    ref.second.DumpTo(strm);
-  }
 }
 } // ns fcgi

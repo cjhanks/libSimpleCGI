@@ -3,6 +3,8 @@
 #include <cassert>
 #include <iostream>
 
+#include "SimpleCGI/common/Logging.hpp"
+
 
 using std::endl;
 using std::ostream;
@@ -12,41 +14,6 @@ using std::vector;
 
 
 namespace fcgi {
-Maybe::Maybe()
-  : isMatchLink(false)
-{}
-
-Maybe::Maybe(const Route& matchLink, const VerbSet& verbSet)
-  : isMatchLink(true)
-  , matchLink(matchLink)
-  , matchVerbs(verbSet)
-{}
-
-Maybe::operator bool() const
-{
-  return isMatchLink;
-}
-
-bool
-Maybe::MatchesVerb(const HttpVerb& Verb)
-{
-  return matchVerbs.count(Verb)
-      || matchVerbs.count(HttpVerb::ANY);
-}
-
-void
-Maybe::DumpTo(const string& prefix, ostream& strm) const
-{
-  for (auto& ref: matchVerbs) {
-    strm << "  "
-       << VerbToVerbString(ref)
-       << endl;
-  }
-
-  strm << "  " << prefix << endl;
-
-}
-
 MatchingLink
 MatchingLink::getRoot()
 {
@@ -62,7 +29,8 @@ MatchingLink::MatchingLink(ElemType elem)
   size_t head = elem.find_first_of("<");
   size_t tail = elem.find_last_of(">");
 
-  if (head == string::npos && tail == string::npos ) {
+  if (head == string::npos
+   || tail == string::npos ) {
     matchType = MatchingType::FIXED;
     matchLink = elem;
   } else {
@@ -72,38 +40,37 @@ MatchingLink::MatchingLink(ElemType elem)
 }
 
 
-MatchingLink::MatchingLink(IterType head, IterType last, const Route& Route,
-               const VerbSet& VerbSet)
+MatchingLink::MatchingLink(
+    IterType head, IterType last, const InstalledRoute& route)
   : MatchingLink(*head)
 {
-  InstallRoute(++head, last, Route, VerbSet);
+  InstallRoute(++head, last, route);
 }
 
 void
-MatchingLink::InstallRoute(IterType head, IterType last, const Route& route,
-                           const VerbSet& verbSet)
+MatchingLink::InstallRoute(IterType head, IterType last, const InstalledRoute& route)
 {
   if (head == last) {
-    currentRoute = Maybe(route, verbSet);
+    currentRoute = route;
   } else {
     for (auto& ref: matchLinkVector) {
       if (ref.matches(head)) {
-        ref.InstallRoute(++head, last, route, verbSet);
+        ref.InstallRoute(++head, last, route);
         return;
       }
     }
 
-    matchLinkVector.emplace_back(MatchingLink(head, last, route, verbSet));
+    matchLinkVector.emplace_back(MatchingLink(head, last, route));
   }
 }
 
-Maybe
+InstalledRoute
 MatchingLink::GetRoute()
 {
   return currentRoute;
 }
 
-Maybe
+InstalledRoute
 MatchingLink::GetRoute(IterType head, IterType last, MatchingArgs* args)
 {
   if (head == last) {
@@ -115,32 +82,7 @@ MatchingLink::GetRoute(IterType head, IterType last, MatchingArgs* args)
       }
     }
 
-    return Maybe();
-  }
-}
-
-void
-MatchingLink::DumpTo(const string& prefix, ostream& strm) const
-{
-  string correctedPrefix = prefix;
-
-  switch (matchType) {
-    case MatchingType::ANY:
-      correctedPrefix += "/<" + matchLink + ">";
-      break;
-
-    default:
-      correctedPrefix += matchLink;
-      break;
-  }
-
-  if (currentRoute) {
-    strm << string(80, '-') << endl;
-    currentRoute.DumpTo(correctedPrefix, strm);
-  }
-
-  for (auto& ref: matchLinkVector) {
-    ref.DumpTo(correctedPrefix, strm);
+    return InstalledRoute();
   }
 }
 
@@ -193,42 +135,28 @@ MatchingRoot::MatchingRoot()
 {}
 
 void
-MatchingRoot::InstallRoute(const string& RouteStr, const Route& Route)
+MatchingRoot::InstallRoute(const string& routeStr, const InstalledRoute& route)
 {
-  return InstallRoute(RouteStr, Route, {HttpVerb::ANY});
+  vector<string> RouteVec = RouteToVector(routeStr);
+  root.InstallRoute(RouteVec.cbegin(), RouteVec.cend(), route);
 }
 
-void
-MatchingRoot::InstallRoute(const string& RouteStr, const Route& Route,
-               const VerbSet& VerbSet)
+InstalledRoute
+MatchingRoot::GetRoute(const string& routeStr, MatchingArgs& args,
+                       const HttpVerb& verb)
 {
-  vector<string> RouteVec(RouteToVector(RouteStr));
-  root.InstallRoute(RouteVec.cbegin(), RouteVec.cend(), Route, VerbSet);
-}
-
-Maybe
-MatchingRoot::GetRoute(const string& RouteStr, MatchingArgs& args,
-             const HttpVerb& Verb)
-{
-  vector<string> RouteVec(RouteToVector(RouteStr));
-  Maybe maybeRoute;
-  if (0 == RouteVec.size()) {
+  vector<string> routeVec(RouteToVector(routeStr));
+  InstalledRoute maybeRoute;
+  if (0 == routeVec.size()) {
     maybeRoute = root.GetRoute();
   } else {
-    maybeRoute = root.GetRoute(RouteVec.cbegin(), RouteVec.cend(), &args);
+    maybeRoute = root.GetRoute(routeVec.cbegin(), routeVec.cend(), &args);
   }
 
-  if (maybeRoute && maybeRoute.MatchesVerb(Verb)) {
+  if (maybeRoute && maybeRoute.Matches(verb)) {
     return maybeRoute;
   } else {
-    return Maybe();
+    return InstalledRoute();
   }
-}
-
-ostream&
-operator<<(ostream& strm, const MatchingRoot& root)
-{
-  root.root.DumpTo("", strm);
-  return strm;
 }
 } // ns fcgi

@@ -1,5 +1,5 @@
-#ifndef __FCGI_ROUTE_HPP
-#define __FCGI_ROUTE_HPP
+#ifndef __FCGI_ROUTING_HPP
+#define __FCGI_ROUTING_HPP
 
 #include <functional>
 #include <map>
@@ -7,7 +7,7 @@
 #include <set>
 
 #include "FcgiHttp.hpp"
-
+#include "Route.hpp"
 
 
 namespace fcgi {
@@ -16,32 +16,6 @@ class HttpRequest;
 class HttpResponse;
 // }
 
-using Route = std::function<int(HttpRequest&, HttpResponse&)>;
-using MatchingArgs = std::map<std::string, std::string>;
-using VerbSet = std::set<HttpVerb>;
-
-class Maybe {
-public:
-  Maybe();
-  Maybe(const Route& matchLink, const VerbSet& verbSet);
-  operator bool() const;
-
-  template <typename... _Args>
-  auto
-  call(_Args&&... args) -> decltype(((Route*)(0))->operator()(args...))
-  { return matchLink(args...); }
-
-  bool
-  MatchesVerb(const HttpVerb& Verb);
-
-  void
-  DumpTo(const std::string& prefix, std::ostream&) const;
-
-private:
-  bool isMatchLink;
-  Route matchLink;
-  VerbSet matchVerbs;
-};
 
 class MatchingLink {
   enum class MatchingType {
@@ -59,24 +33,19 @@ public:
   getRoot();
 
   MatchingLink(ElemType elem);
-  MatchingLink(IterType head, IterType last, const Route& route,
-               const VerbSet& verbSet);
+  MatchingLink(IterType head, IterType last, const InstalledRoute& route);
 
   void
-  InstallRoute(IterType head, IterType last, const Route& route,
-               const VerbSet& verbSet);
+  InstallRoute(IterType head, IterType last, const InstalledRoute& route);
 
-  Maybe
+  InstalledRoute
   GetRoute();
 
-  Maybe
+  InstalledRoute
   GetRoute(IterType head, IterType last, MatchingArgs* args);
 
-  void
-  DumpTo(const std::string& prefix, std::ostream& strm) const;
-
 private:
-  Maybe currentRoute;
+  InstalledRoute currentRoute;
   ElemType matchLink;
   MatchingType matchType;
 
@@ -92,24 +61,17 @@ public:
   MatchingRoot();
 
   void
-  InstallRoute(const std::string& routeStr, const Route& route);
-
-  void
-  InstallRoute(const std::string& routeStr, const Route& route,
-               const VerbSet& verbSet);
-
-
-  friend std::ostream& operator<<(std::ostream&, const MatchingRoot&);
+  InstallRoute(const std::string& routeStr, const InstalledRoute& route);
 
 private:
   MatchingLink root;
 
   friend class HttpRequest;
-  Maybe
+  InstalledRoute
   GetRoute(const std::string& RouteStr, MatchingArgs& args,
            const HttpVerb& Verb);
 
 };
 } // ns fcgi
 
-#endif // __FCGI_ROUTE_HPP
+#endif // __FCGI_ROUTING_HPP

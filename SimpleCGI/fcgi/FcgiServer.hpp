@@ -96,9 +96,6 @@ struct ServerConfig {
     : concurrencyModel(ConcurrencyModel::SYNCHRONOUS)
     , childCount(1)
   {}
-
-  void
-  DumpTo(std::ostream&) const;
 };
 
 class MasterServer {
@@ -121,13 +118,11 @@ public:
   /// verbSet is an optional set of HTTP verbs to be handled,
   /// by default it will be all verbs.
   void
-  InstallRoute(const std::string& routeStr, const Route& route)
-  { httpRoutes.InstallRoute(routeStr, route); }
+  InstallRoute(const std::string& routeStr, const Route& route);
 
   void
   InstallRoute(const std::string& routeStr, const Route& route,
-               const VerbSet& verbSet)
-  { httpRoutes.InstallRoute(routeStr, route, verbSet); }
+               const VerbSet& verbSet);
   /// }
 
 
@@ -136,9 +131,6 @@ public:
   /// implementing your own event loop.
   void
   HandleInboundSocket(int sock);
-
-  void
-  DumpTo(std::ostream&) const;
 
 private:
   const ServerConfig serverConfig;

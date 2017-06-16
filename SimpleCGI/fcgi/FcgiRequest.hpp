@@ -101,7 +101,7 @@ private:
 
   explicit HttpRequest(LogicalApplicationSocket* client);
 
-  Maybe
+  InstalledRoute
   GetRoute(MasterServer* master);
 
   /// {

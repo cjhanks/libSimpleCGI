@@ -57,9 +57,6 @@ public:
         CacheMode cacheMode);
   operator std::string();
 
-  void
-  DumpTo(std::ostream& strm) const;
-
 private:
   const std::string filePath;
   const struct stat fileStat;
@@ -74,9 +71,6 @@ class Assets {
 public:
   void
   AddSearchPath(const std::string& path, CacheMode cacheMode);
-
-  void
-  DumpTo(std::ostream& strm) const;
 
 private:
   friend class CompiledAssets;

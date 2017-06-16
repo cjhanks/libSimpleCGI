@@ -38,6 +38,24 @@ MasterServer::MasterServer(ServerConfig config, int socket)
   }
 }
 
+void
+MasterServer::InstallRoute(
+    const std::string& routeStr, const Route& route)
+{
+  InstallRoute(routeStr, route, {HttpVerb::ANY});
+}
+
+void
+MasterServer::InstallRoute(
+    const std::string& routeStr, const Route& route,
+    const VerbSet& verbSet)
+{
+  httpRoutes.InstallRoute(
+      routeStr,
+      InstalledRoute({route}, verbSet)
+  );
+}
+
 int
 MasterServer::ServeForever()
 {
@@ -112,54 +130,14 @@ MasterServer::applicationHandler(LogicalApplicationSocket* client)
     HttpResponse res(client);
 
     auto maybeRoute = req.GetRoute(this);
-    if (!maybeRoute) {
+    if (maybeRoute) {
+      maybeRoute.Call(req, res);
+    } else {
       if (serverConfig.catchAll)
         serverConfig.catchAll(req, res);
       else
         res.SetResponse(HttpHeader(404, "text/html"));
-    } else {
-      maybeRoute.call(req, res);
     }
   } catch (...) {}
-}
-
-void
-MasterServer::DumpTo(ostream& strm) const
-{
-  using std::endl;
-  strm << string(80, '=') << endl
-     << "FASTWEB: " << VersionToString(CurrentVersion) << endl
-     << string(80, '-') << endl;
-
-  serverConfig.DumpTo(strm);
-
-  strm << httpRoutes;
-  serverAssets.DumpTo(strm);
-}
-
-
-void
-ServerConfig::DumpTo(ostream& strm) const
-{
-  auto concurrencyModelStr = [&]() {
-    switch (concurrencyModel) {
-      case ConcurrencyModel::SYNCHRONOUS:
-        return "SYNCHRONOUS";
-      case ConcurrencyModel::THREADED:
-        return "THREADED";
-      case ConcurrencyModel::PREFORKED:
-        return "PREFORKED";
-    }
-
-    return "UNDEFINED";
-  };
-
-  strm << "Concurrency Model: " << concurrencyModelStr() << " -> ";
-  if (concurrencyModel == ConcurrencyModel::SYNCHRONOUS) {
-    strm << "1";
-  } else {
-    strm << childCount;
-  }
-  strm << std::endl;
 }
 } // ns fcgi

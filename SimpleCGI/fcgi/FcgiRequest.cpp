@@ -170,7 +170,7 @@ HttpRequest::HttpRequest(LogicalApplicationSocket* client)
   }
 }
 
-Maybe
+InstalledRoute
 HttpRequest::GetRoute(MasterServer* master)
 {
   return master->Routes().GetRoute(Route(), matchingArgs, httpVerb);
