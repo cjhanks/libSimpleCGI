@@ -7,5 +7,7 @@
 #include "SimpleCGI/wsgi/Wsgi.hpp"
 #endif
 
+#include "SimpleCGI/extras/HeaderRouter.hpp"
+
 
 #endif // SIMPLE_CGI_HPP_

@@ -8,6 +8,8 @@ libSimpleCGISourceRoots = [
     '',
     './common',
     './common/*',
+    './extras',
+    './extras/*',
     './fcgi',
     './fcgi/*',
 ]

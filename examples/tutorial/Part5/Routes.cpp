@@ -10,6 +10,7 @@ namespace {
 using Request = fcgi::HttpRequest;
 using Response = fcgi::HttpResponse;
 
+// {
 int
 HelloWorld_0(Request&, Response& response)
 {
@@ -31,6 +32,27 @@ HelloWorld_2(Request& request, Response& response)
   response.ToStream() << name;
   return 0;
 }
+// }
+
+// {
+int
+ContentType_JSON(Request&, Response& response)
+{
+  response.SetResponse(fcgi::HttpHeader(200, "application/json"));
+  response.ToStream()
+      << "{\"message\": \"Content type was JSON\"}";
+  return 0;
+}
+
+int
+ContentType_TEXT(Request&, Response& response)
+{
+  response.SetResponse(fcgi::HttpHeader(200, "text/plain"));
+  response.ToStream()
+      << "Content Type was TEXT";
+  return 0;
+}
+// }
 } // ns
 
 // ========================================================================== //
@@ -47,5 +69,17 @@ Install(fcgi::MasterServer& server)
     },
     {fcgi::HttpVerb::GET}
   );
+
+  server.InstallRoute(
+    "/example5/content-type",
+    fcgi::HeaderRouter("content-type")
+         .Add("application/json",
+              ContentType_JSON)
+         .Add("text/plain",
+              ContentType_TEXT)
+         .Fallback("text/plain"),
+    {fcgi::HttpVerb::GET}
+  );
+
 }
 } // ns Part5
