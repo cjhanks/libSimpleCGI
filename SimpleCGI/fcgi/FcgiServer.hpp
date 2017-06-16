@@ -123,6 +123,15 @@ public:
   void
   InstallRoute(const std::string& routeStr, const Route& route,
                const VerbSet& verbSet);
+
+  void
+  InstallRoute(const std::string& routeStr,
+               const RouteVector& route);
+
+  void
+  InstallRoute(const std::string& routeStr,
+               const RouteVector& route,
+               const VerbSet& verbSet);
   /// }
 
 

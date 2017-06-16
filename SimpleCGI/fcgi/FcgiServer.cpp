@@ -42,7 +42,7 @@ void
 MasterServer::InstallRoute(
     const std::string& routeStr, const Route& route)
 {
-  InstallRoute(routeStr, route, {HttpVerb::ANY});
+  InstallRoute(routeStr, RouteVector {route});
 }
 
 void
@@ -50,9 +50,24 @@ MasterServer::InstallRoute(
     const std::string& routeStr, const Route& route,
     const VerbSet& verbSet)
 {
+  InstallRoute(routeStr, RouteVector {route}, verbSet);
+}
+
+void
+MasterServer::InstallRoute(const std::string& routeStr,
+                           const RouteVector& route)
+{
+  InstallRoute(routeStr, route, {HttpVerb::ANY});
+}
+
+void
+MasterServer::InstallRoute(const std::string& routeStr,
+                           const RouteVector& route,
+                           const VerbSet& verbSet)
+{
   httpRoutes.InstallRoute(
       routeStr,
-      InstalledRoute({route}, verbSet)
+      InstalledRoute(route, verbSet)
   );
 }
 

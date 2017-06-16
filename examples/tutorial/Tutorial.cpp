@@ -9,6 +9,8 @@
 #include "Part4/Routes.hpp"
 #endif
 
+#include "Part5/Routes.hpp"
+
 
 
 int
@@ -117,7 +119,10 @@ main(void)
 
   // Demonstrates how to perform POST/PUT body requests.
   Part2::Install(server);
-  //
+
+  // Demonstrates how to pipline requests through multiple
+  // states.
+  Part5::Install(server);
   // }
 
   // {
